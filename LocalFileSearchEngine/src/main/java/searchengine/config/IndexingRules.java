@@ -1,13 +1,14 @@
 package searchengine.config;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Set;
 
 public class IndexingRules {
 
-    // --- Supported text file extensions (for content indexing)
     public static final Set<String> SUPPORTED_TEXT_EXTENSIONS = Set.of(
             "txt", "md",
-            "java", "kt", "c", "cpp", "h", "hpp",
+            "java", "kt", "c", "cpp", "h", "hpp","rs",
             "py",
             "js", "ts",
             "html", "css", "xml",
@@ -18,7 +19,6 @@ public class IndexingRules {
             "log"
     );
 
-    // --- Folders to skip entirely (do not traverse)
     public static final Set<String> IGNORED_FOLDERS = Set.of(
             ".git",
             ".idea",
@@ -33,17 +33,11 @@ public class IndexingRules {
             "__pycache__"
     );
 
-    // --- Specific file names to ignore
     public static final Set<String> IGNORED_FILE_NAMES = Set.of(
             ".DS_Store"
     );
 
-    // --- Max file size for content indexing (10 MB)
     public static final long MAX_CONTENT_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-
-    // -----------------------------
-    // Utility methods
-    // -----------------------------
 
     public static boolean isSupportedTextFile(String fileName) {
         if (fileName == null) return false;
@@ -76,5 +70,47 @@ public class IndexingRules {
 
     public static boolean isFileTooLargeForContent(long sizeBytes) {
         return sizeBytes > MAX_CONTENT_FILE_SIZE_BYTES;
+    }
+
+    public boolean shouldIgnoreDirectory(Path dir) {
+        if (dir == null || dir.getFileName() == null) {
+            return false;
+        }
+
+        String name = dir.getFileName().toString();
+
+        try {
+            if (Files.isHidden(dir)) {
+                return true;
+            }
+        } catch (Exception ignored) {
+        }
+
+        return isIgnoredFolder(name);
+    }
+
+    public boolean shouldIgnoreFile(Path file) {
+        if (file == null || file.getFileName() == null) {
+            return false;
+        }
+
+        String name = file.getFileName().toString();
+
+        try {
+            if (Files.isHidden(file)) {
+                return true;
+            }
+        } catch (Exception ignored) {
+        }
+
+        return isIgnoredFileName(name);
+    }
+
+    public boolean isSupportedFileType(Path file) {
+        if (file == null || file.getFileName() == null) {
+            return false;
+        }
+
+        return isSupportedTextFile(file.getFileName().toString());
     }
 }
