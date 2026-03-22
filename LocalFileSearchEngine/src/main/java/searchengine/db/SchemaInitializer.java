@@ -24,7 +24,7 @@ public class SchemaInitializer {
                     content_hash TEXT,
                     is_hidden INTEGER NOT NULL DEFAULT 0,
                     is_text_file INTEGER NOT NULL DEFAULT 0,
-                    first_lines TEXT
+                    preview TEXT
                 );
             """);
 
