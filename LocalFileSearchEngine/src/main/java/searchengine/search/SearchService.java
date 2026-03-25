@@ -1,34 +1,35 @@
 package searchengine.search;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import searchengine.db.SearchRepository;
+
+import java.util.List;
 
 public class SearchService {
 
-    public void search(Connection connection, String query) {
-        String sql = """
-            SELECT f.file_name, f.path, f.preview
-            FROM file_content_fts fts
-            JOIN files f ON f.path = fts.path
-            WHERE file_content_fts MATCH ?
-        """;
+    private final SearchRepository searchRepository;
 
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, query);
+    public SearchService(SearchRepository searchRepository) {
+        this.searchRepository = searchRepository;
+    }
 
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    System.out.println("File: " + rs.getString("file_name"));
-                    System.out.println("Path: " + rs.getString("path"));
-                    System.out.println("Preview:");
-                    System.out.println(rs.getString("preview"));
-                    System.out.println("-----");
-                }
-            }
+    public List<SearchResult> search(String query) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
 
-        } catch (Exception e) {
-            System.out.println("[SEARCH ERROR] " + e.getMessage());
+        return searchRepository.searchByContent(query.trim());
+    }
+
+    public void printResults(String query) {
+        List<SearchResult> results = search(query);
+
+        if (results.isEmpty()) {
+            System.out.println("No results found.");
+            return;
+        }
+
+        for (SearchResult result : results) {
+            System.out.println(result);
         }
     }
 }
