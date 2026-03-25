@@ -1,6 +1,10 @@
+# Architecture Overview
 
+This document describes the architecture of the local file search engine using the **C4 model**.
+The diagrams move from the overall system view to the internal implementation structure, showing how file crawling, indexing, persistence, and search are organized.
 
 ## [Level 1]: System Context
+The System Context diagram shows the application in its **environment**, focusing on the user and the external local file system it interacts with.
 
 ```mermaid
 graph TD
@@ -23,6 +27,7 @@ graph TD
 
 
 ## [Level 2]: Containers
+The Container diagram shows the high-level structure of the system, how responsibilities are distributed across **independently deployable units**.
 
 ```mermaid
 graph TD
@@ -51,6 +56,7 @@ User["User<br/>[Person]<br/>"]
 ```
 
 ## [Level 3]: Components
+The Component diagram decomposes the application into its main responsibilities, separating the indexing flow from the search flow.
 
 ```mermaid
 graph TD
@@ -103,4 +109,93 @@ graph TD
     class FS,DB local;
 ```
 
-## [Level 4]: UML Class Diagrams
+## [Level 4]: UML Class Diagrams (before UI)
+
+```mermaid
+classDiagram
+
+%% =========================
+%% CORE FLOW
+%% =========================
+
+App --> Indexer
+App --> SearchService
+App --> DatabaseManager
+
+Indexer --> RecursiveFileCrawler
+Indexer --> TextExtractor
+Indexer --> FileIndexRepository
+
+SearchService --> SearchRepository
+
+%% =========================
+%% CRAWLER
+%% =========================
+
+RecursiveFileCrawler --> IndexingRules
+RecursiveFileCrawler --> CrawlResult
+CrawlResult --> CrawlStats
+
+%% =========================
+%% INDEXING
+%% =========================
+
+Indexer --> IndexedFileData
+FileIndexRepository --> IndexedFileData
+
+%% =========================
+%% SEARCH
+%% =========================
+
+SearchRepository --> SearchResult
+
+%% =========================
+%% DATABASE
+%% =========================
+
+DatabaseManager --> SchemaInitializer
+SearchRepository --> SqlQueries
+FileIndexRepository --> SqlQueries
+
+%% =========================
+%% CLASS DEFINITIONS
+%% =========================
+
+class App
+
+class Indexer
+class RecursiveFileCrawler
+class TextExtractor
+class IndexingRules
+
+class FileIndexRepository
+class SearchRepository
+class DatabaseManager
+class SchemaInitializer
+class SqlQueries
+
+class IndexedFileData {
+path
+fileName
+extension
+mimeType
+sizeBytes
+preview
+content
+}
+
+class SearchResult {
+fileName
+path
+preview
+}
+
+class CrawlResult
+class CrawlStats
+```
+
+## Legend
+
+- **Blue elements**: structures that are part of the system being designed
+- **Dark blue elements**: external actor or external system
+- **Arrows**: main interactions or dependencies between elements
