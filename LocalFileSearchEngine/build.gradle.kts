@@ -1,5 +1,7 @@
 plugins {
-    id("java")
+    java
+    application
+    id("org.openjfx.javafxplugin") version "0.0.13"
 }
 
 group = "com.anadumitrache"
@@ -21,6 +23,15 @@ java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(21))
     }
+}
+
+javafx {
+    version = "21"
+    modules = listOf("javafx.controls")
+}
+
+application {
+    mainClass.set("searchengine.ui.SearchFxApp")
 }
 
 tasks.test {
