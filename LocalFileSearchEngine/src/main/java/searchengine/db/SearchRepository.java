@@ -20,7 +20,7 @@ public class SearchRepository {
         List<SearchResult> results = new ArrayList<>();
 
         try (PreparedStatement ps = connection.prepareStatement(SqlQueries.SEARCH_BY_CONTENT)) {
-            ps.setString(1, query);
+            ps.setString(1, query + "*");
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -36,5 +36,42 @@ public class SearchRepository {
         }
 
         return results;
+    }
+
+    public List<SearchResult> searchByContentUnderRoot(String query, String rootPath) {
+        List<SearchResult> results = new ArrayList<>();
+
+        try (PreparedStatement ps = connection.prepareStatement(SqlQueries.SEARCH_BY_CONTENT_UNDER_ROOT)) {
+            ps.setString(1, query + "*");
+            ps.setString(2, normalizeRootPrefix(rootPath));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    results.add(new SearchResult(
+                            rs.getString("file_name"),
+                            rs.getString("path"),
+                            rs.getString("preview")
+                    ));
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("[SEARCH ERROR] " + e.getMessage());
+        }
+
+        return results;
+    }
+
+    private String normalizeRootPrefix(String rootPath) {
+        if (rootPath == null || rootPath.isBlank()) {
+            return "%";
+        }
+
+        String normalized = rootPath.replace("\\", "/");
+
+        if (!normalized.endsWith("/")) {
+            normalized += "/";
+        }
+
+        return normalized + "%";
     }
 }

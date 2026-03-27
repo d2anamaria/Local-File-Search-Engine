@@ -44,6 +44,14 @@ public final class SqlQueries {
         WHERE file_content_fts MATCH ?
     """;
 
+    public static final String SEARCH_BY_CONTENT_UNDER_ROOT = """
+    SELECT f.file_name, f.path, f.preview
+    FROM file_content_fts fts
+    JOIN files f ON f.path = fts.path
+    WHERE file_content_fts MATCH ?
+      AND f.path LIKE ?
+""";
+
     // help update only modified records
     public static final String FIND_INDEXED_FILES_UNDER_ROOT = """
     SELECT path, modified_at

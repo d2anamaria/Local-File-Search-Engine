@@ -20,6 +20,18 @@ public class SearchService {
         return searchRepository.searchByContent(query.trim());
     }
 
+    public List<SearchResult> search(String query, String rootPath) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+
+        if (rootPath == null || rootPath.isBlank()) {
+            return searchRepository.searchByContent(query.trim());
+        }
+
+        return searchRepository.searchByContentUnderRoot(query.trim(), rootPath);
+    }
+
     public void printResults(String query) {
         List<SearchResult> results = search(query);
 

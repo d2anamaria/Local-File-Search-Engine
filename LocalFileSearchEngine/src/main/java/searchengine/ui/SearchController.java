@@ -24,6 +24,8 @@ public class SearchController {
     private final Indexer indexer;
     private final Stage stage;
 
+    private String selectedRootPath;
+
     private final BorderPane root = new BorderPane();
 
     private final TextField pathField = new TextField();
@@ -91,8 +93,10 @@ public class SearchController {
         File selectedDirectory = chooser.showDialog(stage);
 
         if (selectedDirectory != null) {
-            pathField.setText(selectedDirectory.getAbsolutePath());
-            statusLabel.setText("Selected folder: " + selectedDirectory.getAbsolutePath());
+            selectedRootPath = selectedDirectory.getAbsolutePath();
+
+            pathField.setText(selectedRootPath);
+            statusLabel.setText("Selected folder: " + selectedRootPath);
 
             performIndex();
         }
@@ -123,7 +127,7 @@ public class SearchController {
         }
 
         try {
-            List<SearchResult> results = searchService.search(query);
+            List<SearchResult> results = searchService.search(query, selectedRootPath);
             resultsList.setItems(FXCollections.observableArrayList(results));
 
             if (results.isEmpty()) {
