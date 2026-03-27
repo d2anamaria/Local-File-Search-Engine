@@ -2,9 +2,13 @@ package searchengine.db;
 
 import searchengine.indexer.IndexedFileData;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class FileIndexRepository {
 
@@ -17,6 +21,39 @@ public class FileIndexRepository {
     public void save(IndexedFileData fileData) throws SQLException {
         saveFileMetadata(fileData);
         replaceIndexedContent(fileData);
+    }
+
+    public Map<String, String> findIndexedModifiedTimesUnderRoot(String rootPath) throws SQLException {
+        Map<String, String> indexedFiles = new HashMap<>();
+
+        String normalizedRoot = PathHelper.normalizeRootPrefix(rootPath);
+
+        try (PreparedStatement ps = connection.prepareStatement(SqlQueries.FIND_INDEXED_FILES_UNDER_ROOT)) {
+            ps.setString(1, normalizedRoot);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    indexedFiles.put(
+                            rs.getString("path"),
+                            rs.getString("modified_at")
+                    );
+                }
+            }
+        }
+
+        return indexedFiles;
+    }
+
+    public void deleteByPath(String path) throws SQLException {
+        try (PreparedStatement deleteFtsPs = connection.prepareStatement(SqlQueries.DELETE_FTS_BY_PATH)) {
+            deleteFtsPs.setString(1, path);
+            deleteFtsPs.executeUpdate();
+        }
+
+        try (PreparedStatement deleteFilePs = connection.prepareStatement(SqlQueries.DELETE_FILE_BY_PATH)) {
+            deleteFilePs.setString(1, path);
+            deleteFilePs.executeUpdate();
+        }
     }
 
     private void saveFileMetadata(IndexedFileData fileData) throws SQLException {
@@ -52,6 +89,18 @@ public class FileIndexRepository {
             insertPs.setString(2, fileData.getPath());
             insertPs.setString(3, fileData.getContent());
             insertPs.executeUpdate();
+        }
+    }
+
+    private static final class PathHelper {
+        private PathHelper() {
+        }
+
+        private static String normalizeRootPrefix(String rootPath) {
+            if (rootPath.endsWith(File.separator)) {
+                return rootPath + "%";
+            }
+            return rootPath + File.separator + "%";
         }
     }
 }

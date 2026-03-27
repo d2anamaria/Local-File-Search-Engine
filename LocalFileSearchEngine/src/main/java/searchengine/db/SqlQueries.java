@@ -43,4 +43,16 @@ public final class SqlQueries {
         JOIN files f ON f.path = fts.path
         WHERE file_content_fts MATCH ?
     """;
+
+    // help update only modified records
+    public static final String FIND_INDEXED_FILES_UNDER_ROOT = """
+    SELECT path, modified_at
+    FROM files
+    WHERE path LIKE ?
+""";
+
+    public static final String DELETE_FILE_BY_PATH = """
+    DELETE FROM files
+    WHERE path = ?
+""";
 }
