@@ -1,7 +1,6 @@
 package searchengine;
 
 import searchengine.config.IndexingRules;
-import searchengine.crawler.CrawlStats;
 import searchengine.crawler.RecursiveFileCrawler;
 import searchengine.db.DatabaseManager;
 import searchengine.db.FileIndexRepository;
@@ -9,6 +8,7 @@ import searchengine.db.SchemaInitializer;
 import searchengine.db.SearchRepository;
 import searchengine.extractor.TextExtractor;
 import searchengine.indexer.Indexer;
+import searchengine.indexer.IndexingResult;
 import searchengine.search.SearchService;
 
 import java.nio.file.Path;
@@ -38,16 +38,17 @@ public class App {
             Indexer indexer = new Indexer(crawler, extractor, fileIndexRepository);
             SearchService searchService = new SearchService(searchRepository, indexingRules);
 
-            CrawlStats stats = indexer.index(root);
+            IndexingResult result = indexer.index(root, null);
 
             System.out.println("Indexing finished.");
-            System.out.println(stats);
+            System.out.println(result.toDisplayText());
 
             System.out.println("\nSearch results for: hello");
             searchService.printResults("hello");
 
             System.out.println("\nSearch results for: root path");
             searchService.printResults("\"root path\"");
+
 
         } catch (Exception e) {
             e.printStackTrace();

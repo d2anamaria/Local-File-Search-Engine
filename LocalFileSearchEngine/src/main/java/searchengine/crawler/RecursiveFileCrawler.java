@@ -2,7 +2,6 @@ package searchengine.crawler;
 
 import searchengine.config.IndexingRules;
 
-
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -39,7 +38,6 @@ public class RecursiveFileCrawler {
                         public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
                             try {
                                 if (indexingRules.shouldIgnoreDirectory(dir) && !dir.equals(rootPath)) {
-                                    System.out.println("[SKIP DIR] " + dir);
                                     stats.incrementFilesSkipped();
                                     return FileVisitResult.SKIP_SUBTREE;
                                 }
@@ -48,7 +46,6 @@ public class RecursiveFileCrawler {
                                 return FileVisitResult.CONTINUE;
 
                             } catch (Exception e) {
-                                System.err.println("[ERROR DIR] " + dir + " -> " + e.getMessage());
                                 stats.incrementErrors();
                                 return FileVisitResult.SKIP_SUBTREE;
                             }
@@ -58,29 +55,24 @@ public class RecursiveFileCrawler {
                         public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                             try {
                                 if (!attrs.isRegularFile()) {
-                                    System.out.println("[SKIP NON-REGULAR] " + file);
                                     stats.incrementFilesSkipped();
                                     return FileVisitResult.CONTINUE;
                                 }
 
                                 if (indexingRules.shouldIgnoreFile(file)) {
-                                    System.out.println("[SKIP FILE] " + file);
                                     stats.incrementFilesSkipped();
                                     return FileVisitResult.CONTINUE;
                                 }
 
                                 if (!indexingRules.isSupportedFileType(file)) {
-                                    System.out.println("[SKIP UNSUPPORTED] " + file);
                                     stats.incrementFilesSkipped();
                                     return FileVisitResult.CONTINUE;
                                 }
 
                                 discoveredFiles.add(file);
                                 stats.incrementFilesDiscovered();
-                                System.out.println("[FOUND] " + file);
 
                             } catch (Exception e) {
-                                System.err.println("[ERROR FILE] " + file + " -> " + e.getMessage());
                                 stats.incrementErrors();
                             }
 
@@ -89,15 +81,12 @@ public class RecursiveFileCrawler {
 
                         @Override
                         public FileVisitResult visitFileFailed(Path file, IOException exc) {
-                            System.err.println("[FAILED ACCESS] " + file + " -> " +
-                                    (exc != null ? exc.getMessage() : "unknown error"));
                             stats.incrementErrors();
                             return FileVisitResult.CONTINUE;
                         }
                     }
             );
         } catch (IOException e) {
-            System.err.println("[CRAWL ERROR] " + e.getMessage());
             stats.incrementErrors();
         }
 

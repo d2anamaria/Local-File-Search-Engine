@@ -29,9 +29,21 @@ public class Indexer {
         this.repository = repository;
     }
 
-    public CrawlStats index(Path rootPath) {
+    public IndexingResult index(Path rootPath, IndexingProgressListener listener) {
+        if (listener != null) {
+            listener.onCrawlingStarted();
+        }
+
         CrawlResult crawlResult = crawler.crawl(rootPath);
-        CrawlStats stats = crawlResult.getStats();
+        CrawlStats crawlStats = crawlResult.getStats();
+
+        int totalFiles = crawlResult.getDiscoveredFiles().size();
+
+        if (listener != null) {
+            listener.onCrawlingFinished(totalFiles);
+        }
+
+        IndexingStats indexingStats = new IndexingStats();
 
         try {
             String rootAbsolutePath = rootPath.toAbsolutePath().toString();
@@ -39,8 +51,11 @@ public class Indexer {
                     repository.findIndexedModifiedTimesUnderRoot(rootAbsolutePath);
 
             Set<String> currentPaths = new HashSet<>();
+            int current = 0;
 
             for (Path file : crawlResult.getDiscoveredFiles()) {
+                current++;
+
                 try {
                     String absolutePath = file.toAbsolutePath().toString();
                     String currentModifiedAt = Files.getLastModifiedTime(file).toInstant().toString();
@@ -50,31 +65,37 @@ public class Indexer {
                     String indexedModifiedAt = indexedFilesByPath.get(absolutePath);
 
                     if (indexedModifiedAt != null && indexedModifiedAt.equals(currentModifiedAt)) {
-                        System.out.println("[UNCHANGED] " + file);
-                        continue;
+                        indexingStats.incrementFilesUnchanged();
+                    } else {
+                        IndexedFileData fileData = buildIndexedFileData(file, currentModifiedAt);
+                        repository.save(fileData);
+                        indexingStats.incrementFilesIndexed();
                     }
-
-                    IndexedFileData fileData = buildIndexedFileData(file, currentModifiedAt);
-                    repository.save(fileData);
-                    System.out.println("[INDEXED] " + file);
-
                 } catch (Exception e) {
-                    System.out.println("[ERROR] " + file + " -> " + e.getMessage());
+                    indexingStats.incrementErrors();
+                }
+
+                if (listener != null) {
+                    listener.onIndexingProgress(current, totalFiles);
                 }
             }
 
             for (String indexedPath : indexedFilesByPath.keySet()) {
                 if (!currentPaths.contains(indexedPath)) {
-                    repository.deleteByPath(indexedPath);
-                    System.out.println("[DELETED FROM INDEX] " + indexedPath);
+                    try {
+                        repository.deleteByPath(indexedPath);
+                        indexingStats.incrementFilesDeletedFromIndex();
+                    } catch (Exception e) {
+                        indexingStats.incrementErrors();
+                    }
                 }
             }
 
         } catch (Exception e) {
-            System.out.println("[INDEX ERROR] " + e.getMessage());
+            indexingStats.incrementErrors();
         }
 
-        return stats;
+        return new IndexingResult(crawlStats, indexingStats);
     }
 
     private IndexedFileData buildIndexedFileData(Path file, String modifiedAt) throws Exception {

@@ -2,6 +2,7 @@ package searchengine.ui;
 
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
+import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
@@ -10,8 +11,9 @@ import javafx.scene.layout.*;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import searchengine.config.IndexingRules;
-import searchengine.crawler.CrawlStats;
 import searchengine.indexer.Indexer;
+import searchengine.indexer.IndexingProgressListener;
+import searchengine.indexer.IndexingResult;
 import searchengine.search.SearchResult;
 import searchengine.search.SearchService;
 
@@ -42,6 +44,9 @@ public class SearchController {
     private final Button configButton = new Button("⚙ ▶");
 
     private final Label statusLabel = new Label("Choose a folder, then search.");
+    private final ProgressBar progressBar = new ProgressBar();
+    private final Button reportButton = new Button("View report");
+
     private final ListView<SearchResult> resultsList = new ListView<>();
 
     private final BorderPane leftSide = new BorderPane();
@@ -49,7 +54,9 @@ public class SearchController {
     private final ScrollPane configScrollPane = new ScrollPane();
 
     private boolean configVisible = false;
-    private boolean updatingFromMaster = false;
+    private boolean indexingInProgress = false;
+
+    private IndexingResult lastIndexingResult;
 
     public SearchController(
             SearchService searchService,
@@ -86,7 +93,17 @@ public class SearchController {
         HBox searchBar = new HBox(10, searchField, searchButton);
         searchBar.setAlignment(Pos.CENTER_LEFT);
 
-        VBox topBox = new VBox(10, titleLabel, pathBar, searchBar, statusLabel);
+        progressBar.setVisible(false);
+        progressBar.setManaged(false);
+        progressBar.setMaxWidth(Double.MAX_VALUE);
+
+        reportButton.setVisible(false);
+        reportButton.setManaged(false);
+
+        HBox statusRow = new HBox(10, statusLabel, reportButton);
+        statusRow.setAlignment(Pos.CENTER_LEFT);
+
+        VBox topBox = new VBox(10, titleLabel, pathBar, searchBar, statusRow, progressBar);
         topBox.setPadding(new Insets(16));
 
         resultsList.setCellFactory(list -> new SearchResultCell());
@@ -161,7 +178,11 @@ public class SearchController {
 
             checkBox.selectedProperty().addListener((obs, oldValue, newValue) -> {
                 indexingRules.setExtensionEnabled(extension, newValue);
-                statusLabel.setText("Config updated. Click Reindex to apply.");
+
+                if (!indexingInProgress) {
+                    statusLabel.setText("Config updated. Click Reindex to apply.");
+                }
+
                 performSearch();
             });
 
@@ -179,9 +200,11 @@ public class SearchController {
                 checkBox.setSelected(selected);
             }
 
-            statusLabel.setText("Config updated. Click Reindex to apply.");
-            performSearch();
+            if (!indexingInProgress) {
+                statusLabel.setText("Config updated. Click Reindex to apply.");
+            }
 
+            performSearch();
         });
 
         extensionsBox.getChildren().add(enableAllCheckBox);
@@ -199,7 +222,6 @@ public class SearchController {
         configPanel.getChildren().addAll(configTitle, infoLabel, textFilesPane);
     }
 
-
     private void bindActions() {
         browseButton.setOnAction(event -> chooseDirectory());
         searchButton.setOnAction(event -> performSearch());
@@ -207,6 +229,7 @@ public class SearchController {
         searchField.setOnAction(event -> performSearch());
 
         configButton.setOnAction(event -> toggleConfigPanel());
+        reportButton.setOnAction(event -> showReportDialog());
 
         ChangeListener<String> liveSearchListener = (obs, oldValue, newValue) -> performSearch();
         searchField.textProperty().addListener(liveSearchListener);
@@ -238,7 +261,10 @@ public class SearchController {
             selectedRootPath = selectedDirectory.getAbsolutePath();
 
             pathField.setText(selectedRootPath);
-            statusLabel.setText("Selected folder: " + selectedRootPath);
+
+            if (!indexingInProgress) {
+                statusLabel.setText("Selected folder: " + selectedRootPath);
+            }
 
             performIndex();
         }
@@ -252,12 +278,89 @@ public class SearchController {
             return;
         }
 
-        try {
-            CrawlStats stats = indexer.index(Path.of(pathText));
-            statusLabel.setText("Indexing finished. " + stats);
-        } catch (Exception e) {
-            statusLabel.setText("Indexing failed: " + e.getMessage());
+        if (indexingInProgress) {
+            statusLabel.setText("Indexing is already running...");
+            return;
         }
+
+        indexingInProgress = true;
+        lastIndexingResult = null;
+
+        reportButton.setVisible(false);
+        reportButton.setManaged(false);
+
+        browseButton.setDisable(true);
+        reindexButton.setDisable(true);
+
+        Task<IndexingResult> task = new Task<>() {
+            @Override
+            protected IndexingResult call() {
+                return indexer.index(Path.of(pathText), new IndexingProgressListener() {
+                    @Override
+                    public void onCrawlingStarted() {
+                        updateMessage("Crawling...");
+                        updateProgress(-1, 1);
+                    }
+
+                    @Override
+                    public void onCrawlingFinished(int totalFiles) {
+                        updateMessage("Indexing... 0 / " + totalFiles);
+                        updateProgress(0, Math.max(totalFiles, 1));
+                    }
+
+                    @Override
+                    public void onIndexingProgress(int current, int total) {
+                        updateMessage("Indexing... " + current + " / " + total);
+                        updateProgress(current, Math.max(total, 1));
+                    }
+                });
+            }
+        };
+
+        statusLabel.textProperty().bind(task.messageProperty());
+        progressBar.progressProperty().bind(task.progressProperty());
+
+        progressBar.setVisible(true);
+        progressBar.setManaged(true);
+
+        task.setOnSucceeded(event -> {
+            statusLabel.textProperty().unbind();
+            progressBar.progressProperty().unbind();
+
+            lastIndexingResult = task.getValue();
+
+            statusLabel.setText("Indexing finished.");
+            progressBar.setVisible(false);
+            progressBar.setManaged(false);
+
+            reportButton.setVisible(true);
+            reportButton.setManaged(true);
+
+            browseButton.setDisable(false);
+            reindexButton.setDisable(false);
+
+            indexingInProgress = false;
+        });
+
+        task.setOnFailed(event -> {
+            statusLabel.textProperty().unbind();
+            progressBar.progressProperty().unbind();
+
+            Throwable error = task.getException();
+            statusLabel.setText("Indexing failed: " + (error != null ? error.getMessage() : "unknown error"));
+
+            progressBar.setVisible(false);
+            progressBar.setManaged(false);
+
+            browseButton.setDisable(false);
+            reindexButton.setDisable(false);
+
+            indexingInProgress = false;
+        });
+
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        thread.start();
     }
 
     private void performSearch() {
@@ -272,14 +375,32 @@ public class SearchController {
             List<SearchResult> results = searchService.search(query, selectedRootPath);
             resultsList.setItems(FXCollections.observableArrayList(results));
 
-            if (results.isEmpty()) {
-                statusLabel.setText("No results found for: " + query);
-            } else {
-                statusLabel.setText(results.size() + " result(s) for: " + query);
+            if (!indexingInProgress) {
+                if (results.isEmpty()) {
+                    statusLabel.setText("No results found for: " + query);
+                } else {
+                    statusLabel.setText(results.size() + " result(s) for: " + query);
+                }
             }
         } catch (Exception e) {
             resultsList.setItems(FXCollections.observableArrayList());
-            statusLabel.setText("Search failed: " + e.getMessage());
+
+            if (!indexingInProgress) {
+                statusLabel.setText("Search failed: " + e.getMessage());
+            }
         }
+    }
+
+    private void showReportDialog() {
+        if (lastIndexingResult == null) {
+            return;
+        }
+
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.initOwner(stage);
+        alert.setTitle("Indexing Report");
+        alert.setHeaderText("Indexing completed");
+        alert.setContentText(lastIndexingResult.toDisplayText());
+        alert.showAndWait();
     }
 }
