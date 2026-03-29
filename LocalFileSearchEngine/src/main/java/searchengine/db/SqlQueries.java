@@ -63,4 +63,29 @@ public final class SqlQueries {
     DELETE FROM files
     WHERE path = ?
 """;
+
+    public static String searchByContentWithExtensions(int extensionCount) {
+        return """
+        SELECT f.file_name, f.path, f.preview
+        FROM file_content_fts fts
+        JOIN files f ON f.path = fts.path
+        WHERE file_content_fts MATCH ?
+          AND f.extension IN (%s)
+        """.formatted(placeholders(extensionCount));
+    }
+
+    public static String searchByContentUnderRootWithExtensions(int extensionCount) {
+        return """
+        SELECT f.file_name, f.path, f.preview
+        FROM file_content_fts fts
+        JOIN files f ON f.path = fts.path
+        WHERE file_content_fts MATCH ?
+          AND f.path LIKE ?
+          AND f.extension IN (%s)
+        """.formatted(placeholders(extensionCount));
+    }
+
+    private static String placeholders(int count) {
+        return "?,".repeat(count).replaceAll(",$", "");
+    }
 }

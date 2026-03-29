@@ -7,6 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class SearchRepository {
 
@@ -16,11 +17,23 @@ public class SearchRepository {
         this.connection = connection;
     }
 
-    public List<SearchResult> searchByContent(String query) {
+    public List<SearchResult> searchByContent(String query, Set<String> enabledExtensions) {
         List<SearchResult> results = new ArrayList<>();
 
-        try (PreparedStatement ps = connection.prepareStatement(SqlQueries.SEARCH_BY_CONTENT)) {
-            ps.setString(1, query + "*");
+        if (enabledExtensions == null || enabledExtensions.isEmpty()) {
+            return results;
+        }
+
+        String sql = SqlQueries.searchByContentWithExtensions(enabledExtensions.size());
+
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            int parameterIndex = 1;
+
+            ps.setString(parameterIndex++, query + "*");
+
+            for (String extension : enabledExtensions) {
+                ps.setString(parameterIndex++, extension);
+            }
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -38,12 +51,28 @@ public class SearchRepository {
         return results;
     }
 
-    public List<SearchResult> searchByContentUnderRoot(String query, String rootPath) {
+    public List<SearchResult> searchByContentUnderRoot(
+            String query,
+            String rootPath,
+            Set<String> enabledExtensions
+    ) {
         List<SearchResult> results = new ArrayList<>();
 
-        try (PreparedStatement ps = connection.prepareStatement(SqlQueries.SEARCH_BY_CONTENT_UNDER_ROOT)) {
-            ps.setString(1, query + "*");
-            ps.setString(2, normalizeRootPrefix(rootPath));
+        if (enabledExtensions == null || enabledExtensions.isEmpty()) {
+            return results;
+        }
+
+        String sql = SqlQueries.searchByContentUnderRootWithExtensions(enabledExtensions.size());
+
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            int parameterIndex = 1;
+
+            ps.setString(parameterIndex++, query + "*");
+            ps.setString(parameterIndex++, normalizeRootPrefix(rootPath));
+
+            for (String extension : enabledExtensions) {
+                ps.setString(parameterIndex++, extension);
+            }
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {

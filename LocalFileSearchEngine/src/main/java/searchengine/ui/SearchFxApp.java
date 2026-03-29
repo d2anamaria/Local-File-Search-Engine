@@ -26,17 +26,24 @@ public class SearchFxApp extends Application {
 
         new SchemaInitializer().initializeSchema(connection);
 
-        RecursiveFileCrawler crawler = new RecursiveFileCrawler(new IndexingRules());
-        TextExtractor extractor = new TextExtractor();
+        IndexingRules indexingRules = new IndexingRules();
+
+        RecursiveFileCrawler crawler = new RecursiveFileCrawler(indexingRules);
+        TextExtractor extractor = new TextExtractor(indexingRules);
         FileIndexRepository fileIndexRepository = new FileIndexRepository(connection);
         Indexer indexer = new Indexer(crawler, extractor, fileIndexRepository);
 
         SearchRepository searchRepository = new SearchRepository(connection);
-        SearchService searchService = new SearchService(searchRepository);
+        SearchService searchService = new SearchService(searchRepository, indexingRules);
 
-        SearchController controller = new SearchController(searchService, indexer, stage);
+        SearchController controller = new SearchController(
+                searchService,
+                indexer,
+                indexingRules,
+                stage
+        );
 
-        Scene scene = new Scene(controller.getView(), 900, 600);
+        Scene scene = new Scene(controller.getView(), 1000, 650);
 
         stage.setTitle("Local File Search");
         stage.setScene(scene);

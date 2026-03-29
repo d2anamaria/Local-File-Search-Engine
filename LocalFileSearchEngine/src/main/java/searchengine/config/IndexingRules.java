@@ -2,13 +2,14 @@ package searchengine.config;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 public class IndexingRules {
 
-    public static final Set<String> SUPPORTED_TEXT_EXTENSIONS = Set.of(
+    public static final Set<String> DEFAULT_TEXT_EXTENSIONS = Set.of(
             "txt", "md",
-            "java", "kt", "c", "cpp", "h", "hpp","rs",
+            "java", "kt", "c", "cpp", "h", "hpp", "rs",
             "py",
             "js", "ts",
             "html", "css", "xml",
@@ -39,24 +40,45 @@ public class IndexingRules {
 
     public static final long MAX_CONTENT_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
-    public static boolean isSupportedTextFile(String fileName) {
-        if (fileName == null) return false;
+    private final Set<String> enabledTextExtensions = new LinkedHashSet<>(DEFAULT_TEXT_EXTENSIONS);
 
-        int lastDot = fileName.lastIndexOf('.');
-        if (lastDot == -1 || lastDot == fileName.length() - 1) {
+    public Set<String> getEnabledTextExtensions() {
+        return Set.copyOf(enabledTextExtensions);
+    }
+
+    public void setExtensionEnabled(String extension, boolean enabled) {
+        if (extension == null || extension.isBlank()) {
+            return;
+        }
+
+        String normalized = extension.toLowerCase();
+
+        if (enabled) {
+            enabledTextExtensions.add(normalized);
+        } else {
+            enabledTextExtensions.remove(normalized);
+        }
+    }
+
+    public boolean isExtensionEnabled(String extension) {
+        if (extension == null || extension.isBlank()) {
             return false;
         }
 
-        String extension = fileName.substring(lastDot + 1).toLowerCase();
-        return SUPPORTED_TEXT_EXTENSIONS.contains(extension);
+        return enabledTextExtensions.contains(extension.toLowerCase());
     }
 
-    public static boolean isIgnoredFolder(String folderName) {
+    public boolean isSupportedTextFile(String fileName) {
+        String extension = getExtension(fileName);
+        return extension != null && enabledTextExtensions.contains(extension);
+    }
+
+    public boolean isIgnoredFolder(String folderName) {
         if (folderName == null) return false;
         return IGNORED_FOLDERS.contains(folderName);
     }
 
-    public static boolean isIgnoredFileName(String fileName) {
+    public boolean isIgnoredFileName(String fileName) {
         if (fileName == null) return false;
 
         if (IGNORED_FILE_NAMES.contains(fileName)) {
@@ -68,7 +90,7 @@ public class IndexingRules {
                 || fileName.endsWith(".tmp");
     }
 
-    public static boolean isFileTooLargeForContent(long sizeBytes) {
+    public boolean isFileTooLargeForContent(long sizeBytes) {
         return sizeBytes > MAX_CONTENT_FILE_SIZE_BYTES;
     }
 
@@ -112,5 +134,18 @@ public class IndexingRules {
         }
 
         return isSupportedTextFile(file.getFileName().toString());
+    }
+
+    public String getExtension(String fileName) {
+        if (fileName == null) {
+            return null;
+        }
+
+        int lastDot = fileName.lastIndexOf('.');
+        if (lastDot == -1 || lastDot == fileName.length() - 1) {
+            return null;
+        }
+
+        return fileName.substring(lastDot + 1).toLowerCase();
     }
 }

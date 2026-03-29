@@ -8,11 +8,17 @@ import java.nio.file.Path;
 
 public class TextExtractor {
 
+    private final IndexingRules indexingRules;
+
+    public TextExtractor(IndexingRules indexingRules) {
+        this.indexingRules = indexingRules;
+    }
+
     public String extractText(Path path) {
         try {
             String fileName = path.getFileName().toString();
 
-            if (!IndexingRules.isSupportedTextFile(fileName)) {
+            if (!indexingRules.isSupportedTextFile(fileName)) {
                 return "";
             }
 

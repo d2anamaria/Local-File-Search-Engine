@@ -29,13 +29,14 @@ public class App {
         try (Connection connection = dbManager.getConnection()) {
             new SchemaInitializer().initializeSchema(connection);
 
-            RecursiveFileCrawler crawler = new RecursiveFileCrawler(new IndexingRules());
-            TextExtractor extractor = new TextExtractor();
+            IndexingRules indexingRules = new IndexingRules();
+            RecursiveFileCrawler crawler = new RecursiveFileCrawler(indexingRules);
+            TextExtractor extractor = new TextExtractor(indexingRules);
             FileIndexRepository fileIndexRepository = new FileIndexRepository(connection);
             SearchRepository searchRepository = new SearchRepository(connection);
 
             Indexer indexer = new Indexer(crawler, extractor, fileIndexRepository);
-            SearchService searchService = new SearchService(searchRepository);
+            SearchService searchService = new SearchService(searchRepository, indexingRules);
 
             CrawlStats stats = indexer.index(root);
 
