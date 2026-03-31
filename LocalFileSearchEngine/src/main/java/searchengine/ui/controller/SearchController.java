@@ -1,4 +1,4 @@
-package searchengine.ui;
+package searchengine.ui.controller;
 
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
@@ -10,12 +10,13 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseButton;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import searchengine.search.SearchResult;
 import searchengine.search.SearchService;
+import searchengine.ui.component.SearchResultCell;
+import searchengine.ui.component.SearchResultDetailsDialog;
 
 import java.util.List;
 import java.util.function.Supplier;
