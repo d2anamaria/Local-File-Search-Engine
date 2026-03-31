@@ -7,6 +7,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.control.*;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.*;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
@@ -233,6 +234,15 @@ public class SearchController {
 
         ChangeListener<String> liveSearchListener = (obs, oldValue, newValue) -> performSearch();
         searchField.textProperty().addListener(liveSearchListener);
+
+        resultsList.setOnMouseClicked(event -> {
+            if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
+                SearchResult selected = resultsList.getSelectionModel().getSelectedItem();
+                if (selected != null) {
+                    showResultDetails(selected);
+                }
+            }
+        });
     }
 
     private void toggleConfigPanel() {
@@ -402,5 +412,10 @@ public class SearchController {
         alert.setHeaderText("Indexing completed");
         alert.setContentText(lastIndexingResult.toDisplayText());
         alert.showAndWait();
+    }
+
+    private void showResultDetails(SearchResult result) {
+        SearchResultDetailsDialog dialog = new SearchResultDetailsDialog(stage, searchField.getText());
+        dialog.show(result);
     }
 }

@@ -8,6 +8,8 @@ import java.nio.file.Path;
 
 public class TextExtractor {
 
+    private static final int PREVIEW_LINE_COUNT = 3;
+
     private final IndexingRules indexingRules;
 
     public TextExtractor(IndexingRules indexingRules) {
@@ -34,12 +36,28 @@ public class TextExtractor {
         }
 
         String[] lines = text.split("\\R");
-        String result = "";
+        StringBuilder result = new StringBuilder();
+        int addedLines = 0;
 
-        for (int i = 0; i < lines.length && i < 3; i++) {
-            result += lines[i] + "\n";
+        for (String line : lines) {
+            String trimmed = line.trim();
+
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+
+            if (addedLines > 0) {
+                result.append("\n");
+            }
+
+            result.append(trimmed);
+            addedLines++;
+
+            if (addedLines == PREVIEW_LINE_COUNT) {
+                break;
+            }
         }
 
-        return result.trim();
+        return result.toString();
     }
 }
