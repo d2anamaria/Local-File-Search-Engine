@@ -8,6 +8,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 
 public class RecursiveFileCrawler {
 
@@ -18,6 +19,10 @@ public class RecursiveFileCrawler {
     }
 
     public CrawlResult crawl(Path rootPath) {
+        return crawl(rootPath, () -> false);
+    }
+
+    public CrawlResult crawl(Path rootPath, BooleanSupplier stopRequested) {
         List<Path> discoveredFiles = new ArrayList<>();
         CrawlStats stats = new CrawlStats();
 
@@ -36,6 +41,10 @@ public class RecursiveFileCrawler {
 
                         @Override
                         public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                            if (stopRequested.getAsBoolean()) {
+                                return FileVisitResult.TERMINATE;
+                            }
+
                             try {
                                 if (indexingRules.shouldIgnoreDirectory(dir) && !dir.equals(rootPath)) {
                                     stats.incrementFilesSkipped();
@@ -53,6 +62,10 @@ public class RecursiveFileCrawler {
 
                         @Override
                         public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                            if (stopRequested.getAsBoolean()) {
+                                return FileVisitResult.TERMINATE;
+                            }
+
                             try {
                                 if (!attrs.isRegularFile()) {
                                     stats.incrementFilesSkipped();
@@ -86,6 +99,10 @@ public class RecursiveFileCrawler {
 
                         @Override
                         public FileVisitResult visitFileFailed(Path file, IOException exc) {
+                            if (stopRequested.getAsBoolean()) {
+                                return FileVisitResult.TERMINATE;
+                            }
+
                             stats.incrementErrors();
                             return FileVisitResult.CONTINUE;
                         }

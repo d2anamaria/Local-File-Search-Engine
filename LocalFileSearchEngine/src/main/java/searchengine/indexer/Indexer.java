@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 
 public class Indexer {
 
@@ -31,13 +32,21 @@ public class Indexer {
     }
 
     public IndexingResult index(Path rootPath, IndexingProgressListener listener) {
+        return index(rootPath, listener, () -> false);
+    }
+
+    public IndexingResult index(
+            Path rootPath,
+            IndexingProgressListener listener,
+            BooleanSupplier stopRequested
+    ) {
         long totalStart = System.nanoTime();
 
         if (listener != null) {
             listener.onCrawlingStarted();
         }
 
-        CrawlResult crawlResult = crawler.crawl(rootPath);
+        CrawlResult crawlResult = crawler.crawl(rootPath, stopRequested);
         CrawlStats crawlStats = crawlResult.getStats();
 
         int totalFiles = crawlResult.getDiscoveredFiles().size();
@@ -50,6 +59,7 @@ public class Indexer {
 
         IndexingStats indexingStats = new IndexingStats();
         int pendingDbOperations = 0;
+        boolean cancelled = stopRequested.getAsBoolean();
 
         try {
             String rootAbsolutePath = rootPath.toAbsolutePath().toString();
@@ -62,6 +72,11 @@ public class Indexer {
             repository.beginTransaction();
 
             for (Path file : crawlResult.getDiscoveredFiles()) {
+                if (stopRequested.getAsBoolean()) {
+                    cancelled = true;
+                    break;
+                }
+
                 current++;
 
                 try {
@@ -94,19 +109,26 @@ public class Indexer {
                 }
             }
 
-            for (String indexedPath : indexedFilesByPath.keySet()) {
-                if (!currentPaths.contains(indexedPath)) {
-                    try {
-                        repository.deleteByPath(indexedPath);
-                        indexingStats.incrementFilesDeletedFromIndex();
+            if (!cancelled) {
+                for (String indexedPath : indexedFilesByPath.keySet()) {
+                    if (stopRequested.getAsBoolean()) {
+                        cancelled = true;
+                        break;
+                    }
 
-                        pendingDbOperations++;
-                        if (pendingDbOperations >= TRANSACTION_BATCH_SIZE) {
-                            repository.commitTransaction();
-                            pendingDbOperations = 0;
+                    if (!currentPaths.contains(indexedPath)) {
+                        try {
+                            repository.deleteByPath(indexedPath);
+                            indexingStats.incrementFilesDeletedFromIndex();
+
+                            pendingDbOperations++;
+                            if (pendingDbOperations >= TRANSACTION_BATCH_SIZE) {
+                                repository.commitTransaction();
+                                pendingDbOperations = 0;
+                            }
+                        } catch (Exception e) {
+                            indexingStats.incrementErrors();
                         }
-                    } catch (Exception e) {
-                        indexingStats.incrementErrors();
                     }
                 }
             }
@@ -130,7 +152,8 @@ public class Indexer {
                 crawlStats,
                 indexingStats,
                 totalDurationMillis,
-                indexingDurationMillis
+                indexingDurationMillis,
+                cancelled
         );
     }
 

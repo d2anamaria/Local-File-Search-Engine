@@ -14,6 +14,7 @@ import searchengine.indexer.IndexingResult;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -33,6 +34,7 @@ public class IndexingController {
     private final TextField pathField = new TextField();
     private final Button browseButton = new Button("Browse");
     private final Button reindexButton = new Button("Reindex");
+    private final Button stopButton = new Button("Stop");
 
     private final Button configButton = new Button("⚙ ▶");
 
@@ -47,6 +49,8 @@ public class IndexingController {
 
     private IndexingResult lastIndexingResult;
 
+    private Task<IndexingResult> currentTask;
+    private final AtomicBoolean stopRequested = new AtomicBoolean(false);
 
     public IndexingController(
             Indexer indexer,
@@ -100,7 +104,9 @@ public class IndexingController {
         pathField.setPromptText("Choose root folder to index...");
         pathField.setPrefWidth(500);
 
-        HBox pathBar = new HBox(10, pathField, browseButton, reindexButton);
+        stopButton.setDisable(true);
+
+        HBox pathBar = new HBox(10, pathField, browseButton, reindexButton, stopButton);
         pathBar.setAlignment(Pos.CENTER_LEFT);
 
         progressBar.setVisible(false);
@@ -152,6 +158,7 @@ public class IndexingController {
     private void bindActions() {
         browseButton.setOnAction(event -> chooseDirectory());
         reindexButton.setOnAction(event -> performIndex());
+        stopButton.setOnAction(event -> stopIndexing());
         configButton.setOnAction(event -> toggleConfigPanel());
         reportButton.setOnAction(event -> showReportDialog());
     }
@@ -212,78 +219,63 @@ public class IndexingController {
         rootPathConsumer.accept(pathText);
 
         indexingInProgress = true;
+        stopRequested.set(false);
+
         if (onIndexingStarted != null) {
             onIndexingStarted.run();
         }
-        lastIndexingResult = null;
 
+        lastIndexingResult = null;
         reportButton.setVisible(false);
         reportButton.setManaged(false);
 
         browseButton.setDisable(true);
         reindexButton.setDisable(true);
+        stopButton.setDisable(false);
 
         String finalPathText = pathText;
 
-        Task<IndexingResult> task = new Task<>() {
+        currentTask = new Task<>() {
             @Override
             protected IndexingResult call() {
-                return indexer.index(Path.of(finalPathText), new IndexingProgressListener() {
-                    @Override
-                    public void onCrawlingStarted() {
-                        updateMessage("Crawling...");
-                        updateProgress(-1, 1);
-                    }
+                return indexer.index(
+                        Path.of(finalPathText),
+                        new IndexingProgressListener() {
+                            @Override
+                            public void onCrawlingStarted() {
+                                updateMessage("Crawling...");
+                                updateProgress(-1, 1);
+                            }
 
-                    @Override
-                    public void onCrawlingFinished(int totalFiles) {
-                        updateMessage("Indexing... 0 / " + totalFiles);
-                        updateProgress(0, Math.max(totalFiles, 1));
-                    }
+                            @Override
+                            public void onCrawlingFinished(int totalFiles) {
+                                updateMessage("Indexing... 0 / " + totalFiles);
+                                updateProgress(0, Math.max(totalFiles, 1));
+                            }
 
-                    @Override
-                    public void onIndexingProgress(int current, int total) {
-                        updateMessage("Indexing... " + current + " / " + total);
-                        updateProgress(current, Math.max(total, 1));
-                    }
-                });
+                            @Override
+                            public void onIndexingProgress(int current, int total) {
+                                updateMessage("Indexing... " + current + " / " + total);
+                                updateProgress(current, Math.max(total, 1));
+                            }
+                        },
+                        stopRequested::get
+                );
             }
         };
 
-        statusLabel.textProperty().bind(task.messageProperty());
-        progressBar.progressProperty().bind(task.progressProperty());
+        statusLabel.textProperty().bind(currentTask.messageProperty());
+        progressBar.progressProperty().bind(currentTask.progressProperty());
 
         progressBar.setVisible(true);
         progressBar.setManaged(true);
 
-        task.setOnSucceeded(event -> {
+        currentTask.setOnSucceeded(event -> finishIndexing(currentTask.getValue()));
+        currentTask.setOnFailed(event -> {
             statusLabel.textProperty().unbind();
             progressBar.progressProperty().unbind();
 
-            lastIndexingResult = task.getValue();
-
-            statusLabel.setText("Indexing finished.");
-            progressBar.setVisible(false);
-            progressBar.setManaged(false);
-
-            reportButton.setVisible(true);
-            reportButton.setManaged(true);
-
-            browseButton.setDisable(false);
-            reindexButton.setDisable(false);
-
-            indexingInProgress = false;
-
-            if (onIndexingFinished != null) {
-                onIndexingFinished.run();
-            }
-        });
-
-        task.setOnFailed(event -> {
-            statusLabel.textProperty().unbind();
-            progressBar.progressProperty().unbind();
-
-            Throwable error = task.getException();
+            Throwable error = currentTask.getException();
             statusLabel.setText("Indexing failed: " + (error != null ? error.getMessage() : "unknown error"));
 
             progressBar.setVisible(false);
@@ -291,17 +283,59 @@ public class IndexingController {
 
             browseButton.setDisable(false);
             reindexButton.setDisable(false);
+            stopButton.setDisable(true);
 
             indexingInProgress = false;
+            currentTask = null;
 
             if (onIndexingFinished != null) {
                 onIndexingFinished.run();
             }
         });
 
-        Thread thread = new Thread(task);
+        Thread thread = new Thread(currentTask);
         thread.setDaemon(true);
         thread.start();
+    }
+
+    private void stopIndexing() {
+        if (!indexingInProgress) {
+            return;
+        }
+
+        stopRequested.set(true);
+        stopButton.setDisable(true);
+        statusLabel.setText("Stopping indexing...");
+    }
+
+    private void finishIndexing(IndexingResult result) {
+        statusLabel.textProperty().unbind();
+        progressBar.progressProperty().unbind();
+
+        lastIndexingResult = result;
+
+        if (result != null && result.isCancelled()) {
+            statusLabel.setText("Indexing stopped.");
+        } else {
+            statusLabel.setText("Indexing finished.");
+        }
+
+        progressBar.setVisible(false);
+        progressBar.setManaged(false);
+
+        reportButton.setVisible(result != null);
+        reportButton.setManaged(result != null);
+
+        browseButton.setDisable(false);
+        reindexButton.setDisable(false);
+        stopButton.setDisable(true);
+
+        indexingInProgress = false;
+        currentTask = null;
+
+        if (onIndexingFinished != null) {
+            onIndexingFinished.run();
+        }
     }
 
     private void showReportDialog() {
@@ -312,7 +346,7 @@ public class IndexingController {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.initOwner(stage);
         alert.setTitle("Indexing Report");
-        alert.setHeaderText("Indexing completed");
+        alert.setHeaderText(lastIndexingResult.isCancelled() ? "Indexing stopped" : "Indexing completed");
         alert.setContentText(lastIndexingResult.toDisplayText());
         alert.showAndWait();
     }
@@ -327,5 +361,9 @@ public class IndexingController {
 
     public Button getReindexButton() {
         return reindexButton;
+    }
+
+    public Button getStopButton() {
+        return stopButton;
     }
 }

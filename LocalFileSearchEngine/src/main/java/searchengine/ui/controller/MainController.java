@@ -82,11 +82,16 @@ public class MainController {
         form.setVgap(10);
 
         ColumnConstraints fieldColumn = new ColumnConstraints();
-
         ColumnConstraints buttonColumn1 = new ColumnConstraints();
         ColumnConstraints buttonColumn2 = new ColumnConstraints();
+        ColumnConstraints buttonColumn3 = new ColumnConstraints();
 
-        form.getColumnConstraints().addAll(fieldColumn, buttonColumn1, buttonColumn2);
+        form.getColumnConstraints().addAll(
+                fieldColumn,
+                buttonColumn1,
+                buttonColumn2,
+                buttonColumn3
+        );
 
         TextField pathField = indexingController.getPathField();
         TextField searchField = searchController.getSearchField();
@@ -100,6 +105,7 @@ public class MainController {
         form.add(pathField, 0, 0);
         form.add(indexingController.getBrowseButton(), 1, 0);
         form.add(indexingController.getReindexButton(), 2, 0);
+        form.add(indexingController.getStopButton(), 3, 0);
 
         form.add(searchField, 0, 1);
         form.add(searchController.getSearchButton(), 1, 1);

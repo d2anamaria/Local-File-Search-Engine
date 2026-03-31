@@ -9,6 +9,7 @@ public class IndexingResult {
 
     private final long totalDurationMillis;
     private final long indexingDurationMillis;
+    private final boolean cancelled;
 
     public IndexingResult(
             CrawlStats crawlStats,
@@ -16,10 +17,21 @@ public class IndexingResult {
             long totalDurationMillis,
             long indexingDurationMillis
     ) {
+        this(crawlStats, indexingStats, totalDurationMillis, indexingDurationMillis, false);
+    }
+
+    public IndexingResult(
+            CrawlStats crawlStats,
+            IndexingStats indexingStats,
+            long totalDurationMillis,
+            long indexingDurationMillis,
+            boolean cancelled
+    ) {
         this.crawlStats = crawlStats;
         this.indexingStats = indexingStats;
         this.totalDurationMillis = totalDurationMillis;
         this.indexingDurationMillis = indexingDurationMillis;
+        this.cancelled = cancelled;
     }
 
     public CrawlStats getCrawlStats() {
@@ -38,32 +50,52 @@ public class IndexingResult {
         return indexingDurationMillis;
     }
 
-    public String toDisplayText() {
-        return """
-            Total duration: %s
-            
-            Crawl
-            Directories visited: %d
-            Files discovered: %d
-            Files skipped: %d
-            Crawl errors: %d
+    public boolean isCancelled() {
+        return cancelled;
+    }
 
-            Indexing
-            Files indexed: %d
-            Unchanged files: %d
-            Deleted from index: %d
-            Indexing errors: %d
-            Indexing duration: %s
-            """.formatted(
-                formatDuration(totalDurationMillis),
+    public String toDisplayText() {
+        String statusText = cancelled ? "Stopped by user" : "Completed";
+
+        int discovered = crawlStats.getFilesDiscovered();
+        int processed = indexingStats.getFilesIndexed() + indexingStats.getFilesUnchanged();
+        int remaining = Math.max(0, discovered - processed);
+
+        String remainingText = cancelled
+                ? "\nApprox. remaining files (to index): " + remaining
+                : "";
+
+        return """
+        Status
+        %s
+
+        Crawl
+        Directories visited: %d
+        Files discovered: %d
+        Files skipped: %d
+        Crawl errors: %d
+
+        Indexing
+        Files indexed: %d
+        Unchanged files: %d
+        Deleted from index: %d
+        Indexing errors: %d%s
+
+        Timing
+        Total duration: %s
+        Processing duration: %s
+        """.formatted(
+                statusText,
                 crawlStats.getDirectoriesVisited(),
-                crawlStats.getFilesDiscovered(),
+                discovered,
                 crawlStats.getFilesSkipped(),
                 crawlStats.getErrors(),
                 indexingStats.getFilesIndexed(),
                 indexingStats.getFilesUnchanged(),
                 indexingStats.getFilesDeletedFromIndex(),
                 indexingStats.getErrors(),
+                remainingText,
+                formatDuration(totalDurationMillis),
                 formatDuration(indexingDurationMillis)
         );
     }
