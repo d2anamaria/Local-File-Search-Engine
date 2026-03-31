@@ -103,4 +103,23 @@ public class FileIndexRepository {
             return rootPath + File.separator + "%";
         }
     }
+
+    public void beginTransaction() throws SQLException {
+        connection.setAutoCommit(false);
+    }
+
+    public void commitTransaction() throws SQLException {
+        connection.commit();
+    }
+
+    public void rollbackTransaction() {
+        try {
+            connection.rollback();
+        } catch (SQLException ignored) {
+        }
+    }
+
+    public void endTransaction() throws SQLException {
+        connection.setAutoCommit(true);
+    }
 }

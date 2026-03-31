@@ -18,6 +18,7 @@ public class Indexer {
     private final RecursiveFileCrawler crawler;
     private final TextExtractor extractor;
     private final FileIndexRepository repository;
+    private static final int TRANSACTION_BATCH_SIZE = 100;
 
     public Indexer(
             RecursiveFileCrawler crawler,
@@ -30,7 +31,6 @@ public class Indexer {
     }
 
     public IndexingResult index(Path rootPath, IndexingProgressListener listener) {
-        Instant startedAt = Instant.now();
         long totalStart = System.nanoTime();
 
         if (listener != null) {
@@ -47,7 +47,9 @@ public class Indexer {
         }
 
         long indexingStart = System.nanoTime();
+
         IndexingStats indexingStats = new IndexingStats();
+        int pendingDbOperations = 0;
 
         try {
             String rootAbsolutePath = rootPath.toAbsolutePath().toString();
@@ -56,6 +58,8 @@ public class Indexer {
 
             Set<String> currentPaths = new HashSet<>();
             int current = 0;
+
+            repository.beginTransaction();
 
             for (Path file : crawlResult.getDiscoveredFiles()) {
                 current++;
@@ -74,6 +78,12 @@ public class Indexer {
                         IndexedFileData fileData = buildIndexedFileData(file, currentModifiedAt);
                         repository.save(fileData);
                         indexingStats.incrementFilesIndexed();
+
+                        pendingDbOperations++;
+                        if (pendingDbOperations >= TRANSACTION_BATCH_SIZE) {
+                            repository.commitTransaction();
+                            pendingDbOperations = 0;
+                        }
                     }
                 } catch (Exception e) {
                     indexingStats.incrementErrors();
@@ -89,14 +99,28 @@ public class Indexer {
                     try {
                         repository.deleteByPath(indexedPath);
                         indexingStats.incrementFilesDeletedFromIndex();
+
+                        pendingDbOperations++;
+                        if (pendingDbOperations >= TRANSACTION_BATCH_SIZE) {
+                            repository.commitTransaction();
+                            pendingDbOperations = 0;
+                        }
                     } catch (Exception e) {
                         indexingStats.incrementErrors();
                     }
                 }
             }
 
+            repository.commitTransaction();
+
         } catch (Exception e) {
             indexingStats.incrementErrors();
+            repository.rollbackTransaction();
+        } finally {
+            try {
+                repository.endTransaction();
+            } catch (Exception ignored) {
+            }
         }
 
         long totalDurationMillis = (System.nanoTime() - totalStart) / 1_000_000;
