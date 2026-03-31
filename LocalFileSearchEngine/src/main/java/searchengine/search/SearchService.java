@@ -4,7 +4,6 @@ import searchengine.config.IndexingRules;
 import searchengine.db.SearchRepository;
 
 import java.util.List;
-import java.util.Set;
 
 public class SearchService {
 
@@ -21,8 +20,7 @@ public class SearchService {
             return List.of();
         }
 
-        Set<String> enabledExtensions = indexingRules.getEnabledTextExtensions();
-        return searchRepository.searchByContent(query.trim(), enabledExtensions);
+        return searchRepository.searchByContent(query.trim(), indexingRules);
     }
 
     public List<SearchResult> search(String query, String rootPath) {
@@ -30,16 +28,14 @@ public class SearchService {
             return List.of();
         }
 
-        Set<String> enabledExtensions = indexingRules.getEnabledTextExtensions();
-
         if (rootPath == null || rootPath.isBlank()) {
-            return searchRepository.searchByContent(query.trim(), enabledExtensions);
+            return searchRepository.searchByContent(query.trim(), indexingRules);
         }
 
         return searchRepository.searchByContentUnderRoot(
                 query.trim(),
                 rootPath,
-                enabledExtensions
+                indexingRules
         );
     }
 

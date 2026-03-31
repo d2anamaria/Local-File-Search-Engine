@@ -20,7 +20,7 @@ public class IndexingRules {
             "log"
     );
 
-    public static final Set<String> IGNORED_FOLDERS = Set.of(
+    public static final Set<String> DEFAULT_IGNORED_DIRECTORIES = Set.of(
             ".git",
             ".idea",
             ".vscode",
@@ -34,24 +34,37 @@ public class IndexingRules {
             "__pycache__"
     );
 
-    public static final Set<String> IGNORED_FILE_NAMES = Set.of(
+    public static final Set<String> DEFAULT_IGNORED_FILE_NAMES = Set.of(
             ".DS_Store"
     );
 
-    public static final long MAX_CONTENT_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+    public static final long DEFAULT_MAX_INDEXED_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
-    private final Set<String> enabledTextExtensions = new LinkedHashSet<>(DEFAULT_TEXT_EXTENSIONS);
+    private final Set<String> enabledTextExtensions;
+    private final Set<String> ignoredDirectories;
+    private final Set<String> ignoredFileNames;
+
+    private long maxIndexedFileSizeBytes;
+    private boolean includeHiddenFiles;
+
+    public IndexingRules() {
+        this.enabledTextExtensions = new LinkedHashSet<>(DEFAULT_TEXT_EXTENSIONS);
+        this.ignoredDirectories = new LinkedHashSet<>(DEFAULT_IGNORED_DIRECTORIES);
+        this.ignoredFileNames = new LinkedHashSet<>(DEFAULT_IGNORED_FILE_NAMES);
+        this.maxIndexedFileSizeBytes = DEFAULT_MAX_INDEXED_FILE_SIZE_BYTES;
+        this.includeHiddenFiles = false;
+    }
 
     public Set<String> getEnabledTextExtensions() {
         return Set.copyOf(enabledTextExtensions);
     }
 
     public void setExtensionEnabled(String extension, boolean enabled) {
-        if (extension == null || extension.isBlank()) {
+        String normalized = normalizeRuleName(extension);
+
+        if (normalized == null) {
             return;
         }
-
-        String normalized = extension.toLowerCase();
 
         if (enabled) {
             enabledTextExtensions.add(normalized);
@@ -61,11 +74,93 @@ public class IndexingRules {
     }
 
     public boolean isExtensionEnabled(String extension) {
-        if (extension == null || extension.isBlank()) {
+        String normalized = normalizeRuleName(extension);
+
+        if (normalized == null) {
             return false;
         }
 
-        return enabledTextExtensions.contains(extension.toLowerCase());
+        return enabledTextExtensions.contains(normalized);
+    }
+
+    public Set<String> getIgnoredDirectories() {
+        return Set.copyOf(ignoredDirectories);
+    }
+
+    public void addIgnoredDirectory(String directoryName) {
+        String normalized = normalizeRuleName(directoryName);
+
+        if (normalized != null) {
+            ignoredDirectories.add(normalized);
+        }
+    }
+
+    public void removeIgnoredDirectory(String directoryName) {
+        String normalized = normalizeRuleName(directoryName);
+
+        if (normalized != null) {
+            ignoredDirectories.remove(normalized);
+        }
+    }
+
+    public boolean isIgnoredDirectoryEnabled(String directoryName) {
+        String normalized = normalizeRuleName(directoryName);
+
+        if (normalized == null) {
+            return false;
+        }
+
+        return ignoredDirectories.contains(normalized);
+    }
+
+    public Set<String> getIgnoredFileNames() {
+        return Set.copyOf(ignoredFileNames);
+    }
+
+    public void addIgnoredFileName(String fileName) {
+        String normalized = normalizeRuleName(fileName);
+
+        if (normalized != null) {
+            ignoredFileNames.add(normalized);
+        }
+    }
+
+    public void removeIgnoredFileName(String fileName) {
+        String normalized = normalizeRuleName(fileName);
+
+        if (normalized != null) {
+            ignoredFileNames.remove(normalized);
+        }
+    }
+
+    public boolean isIgnoredFileNameEnabled(String fileName) {
+        String normalized = normalizeRuleName(fileName);
+
+        if (normalized == null) {
+            return false;
+        }
+
+        return ignoredFileNames.contains(normalized);
+    }
+
+    public long getMaxIndexedFileSizeBytes() {
+        return maxIndexedFileSizeBytes;
+    }
+
+    public void setMaxIndexedFileSizeBytes(long maxIndexedFileSizeBytes) {
+        if (maxIndexedFileSizeBytes < 0) {
+            return;
+        }
+
+        this.maxIndexedFileSizeBytes = maxIndexedFileSizeBytes;
+    }
+
+    public boolean isIncludeHiddenFiles() {
+        return includeHiddenFiles;
+    }
+
+    public void setIncludeHiddenFiles(boolean includeHiddenFiles) {
+        this.includeHiddenFiles = includeHiddenFiles;
     }
 
     public boolean isSupportedTextFile(String fileName) {
@@ -74,24 +169,37 @@ public class IndexingRules {
     }
 
     public boolean isIgnoredFolder(String folderName) {
-        if (folderName == null) return false;
-        return IGNORED_FOLDERS.contains(folderName);
+        String normalized = normalizeRuleName(folderName);
+
+        if (normalized == null) {
+            return false;
+        }
+
+        return ignoredDirectories.contains(normalized);
     }
 
     public boolean isIgnoredFileName(String fileName) {
-        if (fileName == null) return false;
+        String normalized = normalizeRuleName(fileName);
 
-        if (IGNORED_FILE_NAMES.contains(fileName)) {
+        if (normalized == null) {
+            return false;
+        }
+
+        if (ignoredFileNames.contains(normalized)) {
             return true;
         }
 
-        return fileName.endsWith("~")
-                || fileName.endsWith(".swp")
-                || fileName.endsWith(".tmp");
+        return normalized.endsWith("~")
+                || normalized.endsWith(".swp")
+                || normalized.endsWith(".tmp");
+    }
+
+    public boolean isFileTooLargeForIndexing(long sizeBytes) {
+        return sizeBytes > maxIndexedFileSizeBytes;
     }
 
     public boolean isFileTooLargeForContent(long sizeBytes) {
-        return sizeBytes > MAX_CONTENT_FILE_SIZE_BYTES;
+        return isFileTooLargeForIndexing(sizeBytes);
     }
 
     public boolean shouldIgnoreDirectory(Path dir) {
@@ -101,11 +209,13 @@ public class IndexingRules {
 
         String name = dir.getFileName().toString();
 
-        try {
-            if (Files.isHidden(dir)) {
-                return true;
+        if (!includeHiddenFiles) {
+            try {
+                if (Files.isHidden(dir)) {
+                    return true;
+                }
+            } catch (Exception ignored) {
             }
-        } catch (Exception ignored) {
         }
 
         return isIgnoredFolder(name);
@@ -118,11 +228,13 @@ public class IndexingRules {
 
         String name = file.getFileName().toString();
 
-        try {
-            if (Files.isHidden(file)) {
-                return true;
+        if (!includeHiddenFiles) {
+            try {
+                if (Files.isHidden(file)) {
+                    return true;
+                }
+            } catch (Exception ignored) {
             }
-        } catch (Exception ignored) {
         }
 
         return isIgnoredFileName(name);
@@ -142,10 +254,25 @@ public class IndexingRules {
         }
 
         int lastDot = fileName.lastIndexOf('.');
+
         if (lastDot == -1 || lastDot == fileName.length() - 1) {
             return null;
         }
 
         return fileName.substring(lastDot + 1).toLowerCase();
+    }
+
+    private String normalizeRuleName(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String normalized = value.trim().toLowerCase();
+
+        if (normalized.isBlank()) {
+            return null;
+        }
+
+        return normalized;
     }
 }

@@ -20,8 +20,6 @@ import searchengine.search.SearchService;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 public class SearchController {
@@ -30,6 +28,8 @@ public class SearchController {
     private final Indexer indexer;
     private final IndexingRules indexingRules;
     private final Stage stage;
+
+    private final IndexingConfigPanel indexConfigPanel;
 
     private String selectedRootPath;
 
@@ -51,7 +51,6 @@ public class SearchController {
     private final ListView<SearchResult> resultsList = new ListView<>();
 
     private final BorderPane leftSide = new BorderPane();
-    private final VBox configPanel = new VBox(12);
     private final ScrollPane configScrollPane = new ScrollPane();
 
     private boolean configVisible = false;
@@ -69,6 +68,8 @@ public class SearchController {
         this.indexer = indexer;
         this.indexingRules = indexingRules;
         this.stage = stage;
+
+        this.indexConfigPanel = new IndexingConfigPanel(indexingRules, this::handleConfigChanged);
 
         buildUi();
         bindActions();
@@ -124,9 +125,7 @@ public class SearchController {
         configButton.setStyle("-fx-font-weight: bold;");
         BorderPane.setMargin(configButton, new Insets(10, 10, 10, 10));
 
-        buildConfigPanel();
-
-        configScrollPane.setContent(configPanel);
+        configScrollPane.setContent(indexConfigPanel.getView());
         configScrollPane.setFitToWidth(true);
         configScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         configScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
@@ -146,81 +145,6 @@ public class SearchController {
                 -fx-border-color: #d9d9d9;
                 -fx-border-width: 0 1 0 0;
                 """);
-    }
-
-    private void buildConfigPanel() {
-        configPanel.getChildren().clear();
-        configPanel.setPadding(new Insets(14));
-        configPanel.setSpacing(12);
-        configPanel.setFillWidth(true);
-
-        Label configTitle = new Label("Runtime configuration");
-        configTitle.setStyle("-fx-font-size: 15px; -fx-font-weight: bold;");
-
-        Label infoLabel = new Label(
-                "Checked types will be indexed next time.\n" +
-                        "Old indexed files stay in the database."
-        );
-        infoLabel.setWrapText(true);
-
-        VBox extensionsBox = new VBox(8);
-
-        List<String> extensions = new ArrayList<>(IndexingRules.DEFAULT_TEXT_EXTENSIONS);
-        extensions.sort(Comparator.naturalOrder());
-
-        CheckBox enableAllCheckBox = new CheckBox("Enable all text file types");
-        enableAllCheckBox.setSelected(true);
-
-        List<CheckBox> extensionCheckBoxes = new ArrayList<>();
-
-        for (String extension : extensions) {
-            CheckBox checkBox = new CheckBox("." + extension);
-            checkBox.setSelected(indexingRules.isExtensionEnabled(extension));
-
-            checkBox.selectedProperty().addListener((obs, oldValue, newValue) -> {
-                indexingRules.setExtensionEnabled(extension, newValue);
-
-                if (!indexingInProgress) {
-                    statusLabel.setText("Config updated. Click Reindex to apply.");
-                }
-
-                performSearch();
-            });
-
-            extensionCheckBoxes.add(checkBox);
-        }
-
-        enableAllCheckBox.setOnAction(event -> {
-            boolean selected = enableAllCheckBox.isSelected();
-
-            for (String extension : extensions) {
-                indexingRules.setExtensionEnabled(extension, selected);
-            }
-
-            for (CheckBox checkBox : extensionCheckBoxes) {
-                checkBox.setSelected(selected);
-            }
-
-            if (!indexingInProgress) {
-                statusLabel.setText("Config updated. Click Reindex to apply.");
-            }
-
-            performSearch();
-        });
-
-        extensionsBox.getChildren().add(enableAllCheckBox);
-        extensionsBox.getChildren().add(new Separator());
-
-        for (CheckBox checkBox : extensionCheckBoxes) {
-            extensionsBox.getChildren().add(checkBox);
-        }
-
-        TitledPane textFilesPane = new TitledPane("Text files", extensionsBox);
-        textFilesPane.setExpanded(true);
-        textFilesPane.setCollapsible(true);
-        textFilesPane.setMaxWidth(Double.MAX_VALUE);
-
-        configPanel.getChildren().addAll(configTitle, infoLabel, textFilesPane);
     }
 
     private void bindActions() {
@@ -243,6 +167,14 @@ public class SearchController {
                 }
             }
         });
+    }
+
+    private void handleConfigChanged() {
+        if (!indexingInProgress) {
+            statusLabel.setText("Config updated. Click Reindex to fully apply.");
+        }
+
+        performSearch();
     }
 
     private void toggleConfigPanel() {

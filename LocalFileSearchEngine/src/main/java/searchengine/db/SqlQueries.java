@@ -88,4 +88,34 @@ public final class SqlQueries {
     private static String placeholders(int count) {
         return "?,".repeat(count).replaceAll(",$", "");
     }
+
+
+    public static String searchByContentWithRules(int extensionCount, boolean filterHidden) {
+        String hiddenClause = filterHidden ? "AND f.is_hidden = ?\n" : "";
+
+        return """
+        SELECT f.file_name, f.path, f.preview
+        FROM file_content_fts fts
+        JOIN files f ON f.path = fts.path
+        WHERE file_content_fts MATCH ?
+          %s
+          AND f.size_bytes <= ?
+          AND f.extension IN (%s)
+        """.formatted(hiddenClause, placeholders(extensionCount));
+    }
+
+    public static String searchByContentUnderRootWithRules(int extensionCount, boolean filterHidden) {
+        String hiddenClause = filterHidden ? "AND f.is_hidden = ?\n" : "";
+
+        return """
+        SELECT f.file_name, f.path, f.preview
+        FROM file_content_fts fts
+        JOIN files f ON f.path = fts.path
+        WHERE file_content_fts MATCH ?
+          AND f.path LIKE ?
+          %s
+          AND f.size_bytes <= ?
+          AND f.extension IN (%s)
+        """.formatted(hiddenClause, placeholders(extensionCount));
+    }
 }

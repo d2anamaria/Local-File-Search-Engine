@@ -64,6 +64,11 @@ public class RecursiveFileCrawler {
                                     return FileVisitResult.CONTINUE;
                                 }
 
+                                if (indexingRules.isFileTooLargeForIndexing(attrs.size())) {
+                                    stats.incrementFilesSkipped();
+                                    return FileVisitResult.CONTINUE;
+                                }
+
                                 if (!indexingRules.isSupportedFileType(file)) {
                                     stats.incrementFilesSkipped();
                                     return FileVisitResult.CONTINUE;
