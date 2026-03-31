@@ -12,6 +12,7 @@ import searchengine.db.SearchRepository;
 import searchengine.extractor.TextExtractor;
 import searchengine.indexer.Indexer;
 import searchengine.search.SearchService;
+import searchengine.ui.controller.MainController;
 
 import java.sql.Connection;
 
