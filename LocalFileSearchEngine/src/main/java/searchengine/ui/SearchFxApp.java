@@ -36,7 +36,7 @@ public class SearchFxApp extends Application {
         SearchRepository searchRepository = new SearchRepository(connection);
         SearchService searchService = new SearchService(searchRepository, indexingRules);
 
-        SearchController controller = new SearchController(
+        MainController controller = new MainController(
                 searchService,
                 indexer,
                 indexingRules,
