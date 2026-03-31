@@ -30,6 +30,9 @@ public class Indexer {
     }
 
     public IndexingResult index(Path rootPath, IndexingProgressListener listener) {
+        Instant startedAt = Instant.now();
+        long totalStart = System.nanoTime();
+
         if (listener != null) {
             listener.onCrawlingStarted();
         }
@@ -43,6 +46,7 @@ public class Indexer {
             listener.onCrawlingFinished(totalFiles);
         }
 
+        long indexingStart = System.nanoTime();
         IndexingStats indexingStats = new IndexingStats();
 
         try {
@@ -95,7 +99,15 @@ public class Indexer {
             indexingStats.incrementErrors();
         }
 
-        return new IndexingResult(crawlStats, indexingStats);
+        long totalDurationMillis = (System.nanoTime() - totalStart) / 1_000_000;
+        long indexingDurationMillis = (System.nanoTime() - indexingStart) / 1_000_000;
+
+        return new IndexingResult(
+                crawlStats,
+                indexingStats,
+                totalDurationMillis,
+                indexingDurationMillis
+        );
     }
 
     private IndexedFileData buildIndexedFileData(Path file, String modifiedAt) throws Exception {

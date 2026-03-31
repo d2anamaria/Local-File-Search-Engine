@@ -2,13 +2,24 @@ package searchengine.indexer;
 
 import searchengine.crawler.CrawlStats;
 
+
 public class IndexingResult {
     private final CrawlStats crawlStats;
     private final IndexingStats indexingStats;
 
-    public IndexingResult(CrawlStats crawlStats, IndexingStats indexingStats) {
+    private final long totalDurationMillis;
+    private final long indexingDurationMillis;
+
+    public IndexingResult(
+            CrawlStats crawlStats,
+            IndexingStats indexingStats,
+            long totalDurationMillis,
+            long indexingDurationMillis
+    ) {
         this.crawlStats = crawlStats;
         this.indexingStats = indexingStats;
+        this.totalDurationMillis = totalDurationMillis;
+        this.indexingDurationMillis = indexingDurationMillis;
     }
 
     public CrawlStats getCrawlStats() {
@@ -19,20 +30,32 @@ public class IndexingResult {
         return indexingStats;
     }
 
+    public long getTotalDurationMillis() {
+        return totalDurationMillis;
+    }
+
+    public long getIndexingDurationMillis() {
+        return indexingDurationMillis;
+    }
+
     public String toDisplayText() {
         return """
-                Crawl
-                Directories visited: %d
-                Files discovered: %d
-                Files skipped: %d
-                Crawl errors: %d
+            Total duration: %s
+            
+            Crawl
+            Directories visited: %d
+            Files discovered: %d
+            Files skipped: %d
+            Crawl errors: %d
 
-                Indexing
-                Files indexed: %d
-                Unchanged files: %d
-                Deleted from index: %d
-                Indexing errors: %d
-                """.formatted(
+            Indexing
+            Files indexed: %d
+            Unchanged files: %d
+            Deleted from index: %d
+            Indexing errors: %d
+            Indexing duration: %s
+            """.formatted(
+                formatDuration(totalDurationMillis),
                 crawlStats.getDirectoriesVisited(),
                 crawlStats.getFilesDiscovered(),
                 crawlStats.getFilesSkipped(),
@@ -40,7 +63,31 @@ public class IndexingResult {
                 indexingStats.getFilesIndexed(),
                 indexingStats.getFilesUnchanged(),
                 indexingStats.getFilesDeletedFromIndex(),
-                indexingStats.getErrors()
+                indexingStats.getErrors(),
+                formatDuration(indexingDurationMillis)
         );
+    }
+
+    private String formatDuration(long durationMillis) {
+        long totalSeconds = durationMillis / 1000;
+        long millis = durationMillis % 1000;
+
+        long hours = totalSeconds / 3600;
+        long minutes = (totalSeconds % 3600) / 60;
+        long seconds = totalSeconds % 60;
+
+        if (hours > 0) {
+            return "%dh %dm %ds %dms".formatted(hours, minutes, seconds, millis);
+        }
+
+        if (minutes > 0) {
+            return "%dm %ds %dms".formatted(minutes, seconds, millis);
+        }
+
+        if (seconds > 0) {
+            return "%ds %dms".formatted(seconds, millis);
+        }
+
+        return "%dms".formatted(millis);
     }
 }
