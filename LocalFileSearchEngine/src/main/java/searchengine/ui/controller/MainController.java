@@ -24,6 +24,8 @@ public class MainController {
 
     private String selectedRootPath;
 
+    private boolean indexingInProgress;
+
     public MainController(
             SearchService searchService,
             Indexer indexer,
@@ -33,7 +35,8 @@ public class MainController {
         this.searchController = new SearchController(
                 searchService,
                 stage,
-                this::getSelectedRootPath
+                this::getSelectedRootPath,
+                this::isIndexingInProgress
         );
 
         this.indexingController = new IndexingController(
@@ -41,6 +44,7 @@ public class MainController {
                 stage,
                 this::getSelectedRootPath,
                 this::setSelectedRootPath,
+                this::handleIndexingStarted,
                 this::handleIndexingFinished
         );
 
@@ -118,7 +122,17 @@ public class MainController {
         searchController.refresh();
     }
 
-    private void handleIndexingFinished() {
+    private void handleIndexingStarted() {
+        indexingInProgress = true;
         searchController.refresh();
+    }
+
+    private void handleIndexingFinished() {
+        indexingInProgress = false;
+        searchController.refresh();
+    }
+
+    public boolean isIndexingInProgress() {
+        return indexingInProgress;
     }
 }

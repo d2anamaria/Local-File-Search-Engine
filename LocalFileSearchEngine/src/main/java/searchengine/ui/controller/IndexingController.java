@@ -23,6 +23,7 @@ public class IndexingController {
     private final Stage stage;
     private final Supplier<String> rootPathSupplier;
     private final Consumer<String> rootPathConsumer;
+    private final Runnable onIndexingStarted;
     private final Runnable onIndexingFinished;
 
     private final VBox topView = new VBox(10);
@@ -46,17 +47,20 @@ public class IndexingController {
 
     private IndexingResult lastIndexingResult;
 
+
     public IndexingController(
             Indexer indexer,
             Stage stage,
             Supplier<String> rootPathSupplier,
             Consumer<String> rootPathConsumer,
+            Runnable onIndexingStarted,
             Runnable onIndexingFinished
     ) {
         this.indexer = indexer;
         this.stage = stage;
         this.rootPathSupplier = rootPathSupplier;
         this.rootPathConsumer = rootPathConsumer;
+        this.onIndexingStarted = onIndexingStarted;
         this.onIndexingFinished = onIndexingFinished;
 
         buildUi();
@@ -208,6 +212,9 @@ public class IndexingController {
         rootPathConsumer.accept(pathText);
 
         indexingInProgress = true;
+        if (onIndexingStarted != null) {
+            onIndexingStarted.run();
+        }
         lastIndexingResult = null;
 
         reportButton.setVisible(false);
@@ -286,6 +293,10 @@ public class IndexingController {
             reindexButton.setDisable(false);
 
             indexingInProgress = false;
+
+            if (onIndexingFinished != null) {
+                onIndexingFinished.run();
+            }
         });
 
         Thread thread = new Thread(task);

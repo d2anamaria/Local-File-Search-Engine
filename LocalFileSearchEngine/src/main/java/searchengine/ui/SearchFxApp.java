@@ -18,23 +18,27 @@ import java.sql.Connection;
 
 public class SearchFxApp extends Application {
 
-    private Connection connection;
+    private Connection indexingConnection;
+    private Connection searchConnection;
 
     @Override
     public void start(Stage stage) throws Exception {
         DatabaseManager databaseManager = new DatabaseManager();
-        connection = databaseManager.getConnection();
 
-        new SchemaInitializer().initializeSchema(connection);
+        this.indexingConnection = databaseManager.getConnection();
+        this.searchConnection = databaseManager.getConnection();
+
+        new SchemaInitializer().initializeSchema(indexingConnection);
 
         IndexingRules indexingRules = new IndexingRules();
 
         RecursiveFileCrawler crawler = new RecursiveFileCrawler(indexingRules);
         TextExtractor extractor = new TextExtractor(indexingRules);
-        FileIndexRepository fileIndexRepository = new FileIndexRepository(connection);
+
+        FileIndexRepository fileIndexRepository = new FileIndexRepository(indexingConnection);
         Indexer indexer = new Indexer(crawler, extractor, fileIndexRepository);
 
-        SearchRepository searchRepository = new SearchRepository(connection);
+        SearchRepository searchRepository = new SearchRepository(searchConnection);
         SearchService searchService = new SearchService(searchRepository, indexingRules);
 
         MainController controller = new MainController(
@@ -53,8 +57,11 @@ public class SearchFxApp extends Application {
 
     @Override
     public void stop() throws Exception {
-        if (connection != null && !connection.isClosed()) {
-            connection.close();
+        if (indexingConnection != null && !indexingConnection.isClosed()) {
+            indexingConnection.close();
+        }
+        if (searchConnection != null && !searchConnection.isClosed()) {
+            searchConnection.close();
         }
     }
 

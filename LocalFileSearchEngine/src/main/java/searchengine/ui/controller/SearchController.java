@@ -34,14 +34,18 @@ public class SearchController {
     private final Button searchButton = new Button("Search");
     private final Label statusLabel = new Label("No results yet.");
 
+    private final Supplier<Boolean> indexingInProgressSupplier;
+
     public SearchController(
             SearchService searchService,
             Stage stage,
-            Supplier<String> rootPathSupplier
+            Supplier<String> rootPathSupplier,
+            Supplier<Boolean> indexingInProgressSupplier
     ) {
         this.searchService = searchService;
         this.stage = stage;
         this.rootPathSupplier = rootPathSupplier;
+        this.indexingInProgressSupplier = indexingInProgressSupplier;
 
         buildSearchBar();
         buildResults();
@@ -109,11 +113,16 @@ public class SearchController {
             List<SearchResult> results = searchService.search(query, rootPathSupplier.get());
             resultsList.setItems(FXCollections.observableArrayList(results));
 
+            String suffix = indexingInProgressSupplier.get()
+                    ? " (indexing in progress... results may update)"
+                    : "";
+
             if (results.isEmpty()) {
-                statusLabel.setText("No results found for: " + query);
+                statusLabel.setText("No results found for: " + query + suffix);
             } else {
-                statusLabel.setText(results.size() + " result(s) for: " + query);
+                statusLabel.setText(results.size() + " result(s) for: " + query + suffix);
             }
+
         } catch (Exception e) {
             resultsList.setItems(FXCollections.observableArrayList());
             statusLabel.setText("Search failed: " + e.getMessage());
