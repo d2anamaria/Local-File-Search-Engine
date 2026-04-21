@@ -1,6 +1,7 @@
 package searchengine.db;
 
 import searchengine.config.IndexingRules;
+import searchengine.search.SearchQuery;
 import searchengine.search.SearchResult;
 
 import java.nio.file.Path;
@@ -19,7 +20,7 @@ public class SearchRepository {
         this.connection = connection;
     }
 
-    public List<SearchResult> searchByContent(String query, IndexingRules rules) {
+    public List<SearchResult> searchByContent(SearchQuery query, IndexingRules rules) {
         List<SearchResult> results = new ArrayList<>();
         Set<String> enabledExtensions = rules.getEnabledTextExtensions();
 
@@ -27,12 +28,32 @@ public class SearchRepository {
             return results;
         }
 
-        String sql = SqlQueries.searchByContentWithRules(enabledExtensions.size(), !rules.isIncludeHiddenFiles());
+        boolean hasContent = query.hasContent();
+        boolean hasPath = query.hasPath();
+
+        String sql = hasContent
+                ? SqlQueries.searchContentAndOptionalPathWithRules(
+                enabledExtensions.size(),
+                !rules.isIncludeHiddenFiles(),
+                hasPath
+        )
+                : SqlQueries.searchByPathOnlyWithRules(
+                enabledExtensions.size(),
+                !rules.isIncludeHiddenFiles()
+        );
 
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             int parameterIndex = 1;
 
-            ps.setString(parameterIndex++, query + "*");
+            if (hasContent) {
+                ps.setString(parameterIndex++, toFtsAndQuery(query.getContent()));
+
+                if (hasPath) {
+                    ps.setString(parameterIndex++, "%" + query.getPath().toLowerCase() + "%");
+                }
+            } else {
+                ps.setString(parameterIndex++, "%" + query.getPath().toLowerCase() + "%");
+            }
 
             if (!rules.isIncludeHiddenFiles()) {
                 ps.setInt(parameterIndex++, 0);
@@ -65,7 +86,7 @@ public class SearchRepository {
     }
 
     public List<SearchResult> searchByContentUnderRoot(
-            String query,
+            SearchQuery query,
             String rootPath,
             IndexingRules rules
     ) {
@@ -76,7 +97,16 @@ public class SearchRepository {
             return results;
         }
 
-        String sql = SqlQueries.searchByContentUnderRootWithRules(
+        boolean hasContent = query.hasContent();
+        boolean hasPath = query.hasPath();
+
+        String sql = hasContent
+                ? SqlQueries.searchContentAndOptionalPathUnderRootWithRules(
+                enabledExtensions.size(),
+                !rules.isIncludeHiddenFiles(),
+                hasPath
+        )
+                : SqlQueries.searchByPathOnlyUnderRootWithRules(
                 enabledExtensions.size(),
                 !rules.isIncludeHiddenFiles()
         );
@@ -84,8 +114,17 @@ public class SearchRepository {
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             int parameterIndex = 1;
 
-            ps.setString(parameterIndex++, query + "*");
-            ps.setString(parameterIndex++, normalizeRootPrefix(rootPath));
+            if (hasContent) {
+                ps.setString(parameterIndex++, toFtsAndQuery(query.getContent()));
+                ps.setString(parameterIndex++, normalizeRootPrefix(rootPath));
+
+                if (hasPath) {
+                    ps.setString(parameterIndex++, "%" + query.getPath().toLowerCase() + "%");
+                }
+            } else {
+                ps.setString(parameterIndex++, normalizeRootPrefix(rootPath));
+                ps.setString(parameterIndex++, "%" + query.getPath().toLowerCase() + "%");
+            }
 
             if (!rules.isIncludeHiddenFiles()) {
                 ps.setInt(parameterIndex++, 0);
@@ -115,6 +154,19 @@ public class SearchRepository {
         }
 
         return results;
+    }
+
+    private String toFtsAndQuery(String content) {
+        String[] words = content.trim().split("\\s+");
+        List<String> terms = new ArrayList<>();
+
+        for (String word : words) {
+            if (!word.isBlank()) {
+                terms.add(word + "*");
+            }
+        }
+
+        return String.join(" AND ", terms);
     }
 
     private boolean matchesRuntimeFileFilters(SearchResult result, IndexingRules rules) {

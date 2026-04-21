@@ -9,34 +9,36 @@ public class SearchService {
 
     private final SearchRepository searchRepository;
     private final IndexingRules indexingRules;
+    private final QueryParser queryParser;
 
     public SearchService(SearchRepository searchRepository, IndexingRules indexingRules) {
         this.searchRepository = searchRepository;
         this.indexingRules = indexingRules;
+        this.queryParser = new QueryParser();
     }
 
     public List<SearchResult> search(String query) {
-        if (query == null || query.isBlank()) {
+        SearchQuery parsedQuery = queryParser.parse(query);
+
+        if (parsedQuery.isEmpty()) {
             return List.of();
         }
 
-        return searchRepository.searchByContent(query.trim(), indexingRules);
+        return searchRepository.searchByContent(parsedQuery, indexingRules);
     }
 
     public List<SearchResult> search(String query, String rootPath) {
-        if (query == null || query.isBlank()) {
+        SearchQuery parsedQuery = queryParser.parse(query);
+
+        if (parsedQuery.isEmpty()) {
             return List.of();
         }
 
         if (rootPath == null || rootPath.isBlank()) {
-            return searchRepository.searchByContent(query.trim(), indexingRules);
+            return searchRepository.searchByContent(parsedQuery, indexingRules);
         }
 
-        return searchRepository.searchByContentUnderRoot(
-                query.trim(),
-                rootPath,
-                indexingRules
-        );
+        return searchRepository.searchByContentUnderRoot(parsedQuery, rootPath, indexingRules);
     }
 
     public void printResults(String query) {

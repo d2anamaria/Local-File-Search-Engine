@@ -37,21 +37,6 @@ public final class SqlQueries {
         VALUES (?, ?, ?)
     """;
 
-    public static final String SEARCH_BY_CONTENT = """
-        SELECT f.file_name, f.path, f.preview
-        FROM file_content_fts fts
-        JOIN files f ON f.path = fts.path
-        WHERE file_content_fts MATCH ?
-    """;
-
-    public static final String SEARCH_BY_CONTENT_UNDER_ROOT = """
-    SELECT f.file_name, f.path, f.preview
-    FROM file_content_fts fts
-    JOIN files f ON f.path = fts.path
-    WHERE file_content_fts MATCH ?
-      AND f.path LIKE ?
-""";
-
     // help update only modified records
     public static final String FIND_INDEXED_FILES_UNDER_ROOT = """
     SELECT path, modified_at
@@ -64,58 +49,76 @@ public final class SqlQueries {
     WHERE path = ?
 """;
 
-    public static String searchByContentWithExtensions(int extensionCount) {
+
+    public static String searchContentAndOptionalPathWithRules(
+            int extensionCount,
+            boolean filterHidden,
+            boolean filterPath
+    ) {
+        String hiddenClause = filterHidden ? "AND f.is_hidden = ?\n" : "";
+        String pathClause = filterPath ? "AND LOWER(f.path) LIKE ?\n" : "";
+
         return """
         SELECT f.file_name, f.path, f.preview
         FROM file_content_fts fts
         JOIN files f ON f.path = fts.path
         WHERE file_content_fts MATCH ?
+          %s
+          %s
+          AND f.size_bytes <= ?
           AND f.extension IN (%s)
-        """.formatted(placeholders(extensionCount));
+        """.formatted(pathClause, hiddenClause, placeholders(extensionCount));
     }
 
-    public static String searchByContentUnderRootWithExtensions(int extensionCount) {
+    public static String searchContentAndOptionalPathUnderRootWithRules(
+            int extensionCount,
+            boolean filterHidden,
+            boolean filterPath
+    ) {
+        String hiddenClause = filterHidden ? "AND f.is_hidden = ?\n" : "";
+        String pathClause = filterPath ? "AND LOWER(f.path) LIKE ?\n" : "";
+
         return """
         SELECT f.file_name, f.path, f.preview
         FROM file_content_fts fts
         JOIN files f ON f.path = fts.path
         WHERE file_content_fts MATCH ?
           AND f.path LIKE ?
+          %s
+          %s
+          AND f.size_bytes <= ?
           AND f.extension IN (%s)
-        """.formatted(placeholders(extensionCount));
+        """.formatted(pathClause, hiddenClause, placeholders(extensionCount));
+    }
+
+    public static String searchByPathOnlyWithRules(int extensionCount, boolean filterHidden) {
+        String hiddenClause = filterHidden ? "AND f.is_hidden = ?\n" : "";
+
+        return """
+        SELECT f.file_name, f.path, f.preview
+        FROM files f
+        WHERE LOWER(f.path) LIKE ?
+          %s
+          AND f.size_bytes <= ?
+          AND f.extension IN (%s)
+        """.formatted(hiddenClause, placeholders(extensionCount));
+    }
+
+    public static String searchByPathOnlyUnderRootWithRules(int extensionCount, boolean filterHidden) {
+        String hiddenClause = filterHidden ? "AND f.is_hidden = ?\n" : "";
+
+        return """
+        SELECT f.file_name, f.path, f.preview
+        FROM files f
+        WHERE f.path LIKE ?
+          AND LOWER(f.path) LIKE ?
+          %s
+          AND f.size_bytes <= ?
+          AND f.extension IN (%s)
+        """.formatted(hiddenClause, placeholders(extensionCount));
     }
 
     private static String placeholders(int count) {
         return "?,".repeat(count).replaceAll(",$", "");
-    }
-
-
-    public static String searchByContentWithRules(int extensionCount, boolean filterHidden) {
-        String hiddenClause = filterHidden ? "AND f.is_hidden = ?\n" : "";
-
-        return """
-        SELECT f.file_name, f.path, f.preview
-        FROM file_content_fts fts
-        JOIN files f ON f.path = fts.path
-        WHERE file_content_fts MATCH ?
-          %s
-          AND f.size_bytes <= ?
-          AND f.extension IN (%s)
-        """.formatted(hiddenClause, placeholders(extensionCount));
-    }
-
-    public static String searchByContentUnderRootWithRules(int extensionCount, boolean filterHidden) {
-        String hiddenClause = filterHidden ? "AND f.is_hidden = ?\n" : "";
-
-        return """
-        SELECT f.file_name, f.path, f.preview
-        FROM file_content_fts fts
-        JOIN files f ON f.path = fts.path
-        WHERE file_content_fts MATCH ?
-          AND f.path LIKE ?
-          %s
-          AND f.size_bytes <= ?
-          AND f.extension IN (%s)
-        """.formatted(hiddenClause, placeholders(extensionCount));
     }
 }
