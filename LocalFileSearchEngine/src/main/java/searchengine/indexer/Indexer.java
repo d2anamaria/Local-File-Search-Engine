@@ -5,6 +5,7 @@ import searchengine.crawler.CrawlStats;
 import searchengine.crawler.RecursiveFileCrawler;
 import searchengine.db.FileIndexRepository;
 import searchengine.extractor.TextExtractor;
+import searchengine.ranking.PathScore;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -90,7 +91,7 @@ public class Indexer {
                     if (indexedModifiedAt != null && indexedModifiedAt.equals(currentModifiedAt)) {
                         indexingStats.incrementFilesUnchanged();
                     } else {
-                        IndexedFileData fileData = buildIndexedFileData(file, currentModifiedAt);
+                        IndexedFileData fileData = buildIndexedFileData(rootPath, file, currentModifiedAt);
                         repository.save(fileData);
                         indexingStats.incrementFilesIndexed();
 
@@ -157,7 +158,7 @@ public class Indexer {
         );
     }
 
-    private IndexedFileData buildIndexedFileData(Path file, String modifiedAt) throws Exception {
+    private IndexedFileData buildIndexedFileData(Path rootPath, Path file, String modifiedAt) throws Exception {
         String absolutePath = file.toAbsolutePath().toString();
         String fileName = file.getFileName().toString();
         String content = extractor.extractText(file);
@@ -169,6 +170,8 @@ public class Indexer {
         String indexedAt = Instant.now().toString();
         boolean isHidden = Files.isHidden(file);
         boolean isTextFile = content != null && !content.isBlank();
+
+        PathScore pathScore = new PathScore(rootPath, file, extension, sizeBytes);
 
         return new IndexedFileData(
                 absolutePath,
@@ -183,7 +186,12 @@ public class Indexer {
                 isHidden,
                 isTextFile,
                 preview,
-                content
+                content,
+                pathScore.getPathDepth(),
+                pathScore.getDirectoryScore(),
+                pathScore.getExtensionScore(),
+                pathScore.getSizeScore(),
+                pathScore.getPathScore()
         );
     }
 

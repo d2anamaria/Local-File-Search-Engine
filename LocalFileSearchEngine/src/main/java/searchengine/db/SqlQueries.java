@@ -6,22 +6,27 @@ public final class SqlQueries {
     }
 
     public static final String INSERT_OR_REPLACE_FILE = """
-        INSERT OR REPLACE INTO files(
-            path,
-            file_name,
-            extension,
-            mime_type,
-            size_bytes,
-            created_at,
-            modified_at,
-            indexed_at,
-            content_hash,
-            is_hidden,
-            is_text_file,
-            preview
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """;
+    INSERT OR REPLACE INTO files(
+        path,
+        file_name,
+        extension,
+        mime_type,
+        size_bytes,
+        created_at,
+        modified_at,
+        indexed_at,
+        content_hash,
+        is_hidden,
+        is_text_file,
+        path_depth,
+        directory_score,
+        extension_score,
+        size_score,
+        path_score,
+        preview
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+""";
 
     public static final String DELETE_FTS_BY_PATH = """
         DELETE FROM file_content_fts
@@ -67,6 +72,7 @@ public final class SqlQueries {
           %s
           AND f.size_bytes <= ?
           AND f.extension IN (%s)
+          ORDER BY f.path_score DESC
         """.formatted(pathClause, hiddenClause, placeholders(extensionCount));
     }
 
@@ -88,6 +94,7 @@ public final class SqlQueries {
           %s
           AND f.size_bytes <= ?
           AND f.extension IN (%s)
+          ORDER BY f.path_score DESC
         """.formatted(pathClause, hiddenClause, placeholders(extensionCount));
     }
 
@@ -101,6 +108,7 @@ public final class SqlQueries {
           %s
           AND f.size_bytes <= ?
           AND f.extension IN (%s)
+          ORDER BY f.path_score DESC
         """.formatted(hiddenClause, placeholders(extensionCount));
     }
 
@@ -115,6 +123,7 @@ public final class SqlQueries {
           %s
           AND f.size_bytes <= ?
           AND f.extension IN (%s)
+          ORDER BY f.path_score DESC
         """.formatted(hiddenClause, placeholders(extensionCount));
     }
 

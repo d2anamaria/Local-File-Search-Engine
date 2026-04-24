@@ -14,6 +14,11 @@ public class IndexedFileData {
     private final boolean textFile;
     private final String preview;
     private final String content;
+    private final int pathDepth;
+    private final double directoryScore;
+    private final double extensionScore;
+    private final double sizeScore;
+    private final double pathScore;
 
     public IndexedFileData(
             String path,
@@ -28,7 +33,12 @@ public class IndexedFileData {
             boolean hidden,
             boolean textFile,
             String preview,
-            String content
+            String content,
+            int pathDepth,
+            double directoryScore,
+            double extensionScore,
+            double sizeScore,
+            double pathScore
     ) {
         this.path = path;
         this.fileName = fileName;
@@ -43,6 +53,12 @@ public class IndexedFileData {
         this.textFile = textFile;
         this.preview = preview;
         this.content = content;
+        this.pathDepth = pathDepth;
+        this.directoryScore = directoryScore;
+        this.extensionScore = extensionScore;
+        this.sizeScore = sizeScore;
+        this.pathScore = pathScore;
+
     }
 
     public String getPath() {
@@ -95,5 +111,25 @@ public class IndexedFileData {
 
     public String getContent() {
         return content;
+    }
+
+    public int getPathDepth() {
+        return pathDepth;
+    }
+
+    public double getDirectoryScore() {
+        return directoryScore;
+    }
+
+    public double getExtensionScore() {
+        return extensionScore;
+    }
+
+    public double getSizeScore() {
+        return sizeScore;
+    }
+
+    public double getPathScore() {
+        return pathScore;
     }
 }
