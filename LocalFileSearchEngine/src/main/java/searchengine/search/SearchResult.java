@@ -4,11 +4,15 @@ public class SearchResult {
     private final String fileName;
     private final String path;
     private final String preview;
+    private final String modifiedAt;
+    private final double pathScore;
 
-    public SearchResult(String fileName, String path, String preview) {
+    public SearchResult(String fileName, String path, String preview, String modifiedAt, double pathScore) {
         this.fileName = fileName;
         this.path = path;
         this.preview = preview;
+        this.modifiedAt = modifiedAt;
+        this.pathScore = pathScore;
     }
 
     public String getFileName() {
@@ -29,5 +33,13 @@ public class SearchResult {
                 "Path: " + path + "\n" +
                 "Preview:\n" + preview + "\n" +
                 "-----";
+    }
+
+    public String getModifiedAt() {
+        return modifiedAt;
+    }
+
+    public double getPathScore() {
+        return pathScore;
     }
 }

@@ -5,8 +5,8 @@ import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.GridPane;
+import javafx.geometry.Pos;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import searchengine.config.IndexingRules;
@@ -77,43 +77,41 @@ public class MainController {
     private void buildUi() {
         indexingController.setConfigContent(indexingConfigPanel.getView());
 
-        GridPane form = new GridPane();
-        form.setHgap(10);
-        form.setVgap(10);
-
-        ColumnConstraints fieldColumn = new ColumnConstraints();
-        ColumnConstraints buttonColumn1 = new ColumnConstraints();
-        ColumnConstraints buttonColumn2 = new ColumnConstraints();
-        ColumnConstraints buttonColumn3 = new ColumnConstraints();
-
-        form.getColumnConstraints().addAll(
-                fieldColumn,
-                buttonColumn1,
-                buttonColumn2,
-                buttonColumn3
-        );
-
         TextField pathField = indexingController.getPathField();
         TextField searchField = searchController.getSearchField();
 
+        // keep compact width (like before)
         pathField.setPrefWidth(500);
-        searchField.setPrefWidth(500);
-
         pathField.setMaxWidth(500);
+
+        searchField.setPrefWidth(500);
         searchField.setMaxWidth(500);
 
-        form.add(pathField, 0, 0);
-        form.add(indexingController.getBrowseButton(), 1, 0);
-        form.add(indexingController.getReindexButton(), 2, 0);
-        form.add(indexingController.getStopButton(), 3, 0);
+        searchController.getRankingComboBox().setPrefWidth(180);
+        searchController.getRankingComboBox().setMaxWidth(180);
 
-        form.add(searchField, 0, 1);
-        form.add(searchController.getSearchButton(), 1, 1);
+        HBox indexRow = new HBox(
+                8,
+                pathField,
+                indexingController.getBrowseButton(),
+                indexingController.getReindexButton(),
+                indexingController.getStopButton()
+        );
+        indexRow.setAlignment(Pos.CENTER_LEFT);
+
+        HBox searchRow = new HBox(
+                8,
+                searchField,
+                searchController.getSearchButton(),
+                searchController.getRankingComboBox()
+        );
+        searchRow.setAlignment(Pos.CENTER_LEFT);
 
         VBox topContent = new VBox(
                 10,
                 buildTitleBox(),
-                form,
+                indexRow,
+                searchRow,
                 indexingController.getStatusView()
         );
         topContent.setPadding(new Insets(16));

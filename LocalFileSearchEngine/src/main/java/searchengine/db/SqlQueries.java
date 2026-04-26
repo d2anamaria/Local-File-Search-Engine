@@ -64,7 +64,7 @@ public final class SqlQueries {
         String pathClause = filterPath ? "AND LOWER(f.path) LIKE ?\n" : "";
 
         return """
-        SELECT f.file_name, f.path, f.preview
+        SELECT f.file_name, f.path, f.preview, f.modified_at, f.path_score
         FROM file_content_fts fts
         JOIN files f ON f.path = fts.path
         WHERE file_content_fts MATCH ?
@@ -85,7 +85,7 @@ public final class SqlQueries {
         String pathClause = filterPath ? "AND LOWER(f.path) LIKE ?\n" : "";
 
         return """
-        SELECT f.file_name, f.path, f.preview
+        SELECT f.file_name, f.path, f.preview, f.modified_at, f.path_score
         FROM file_content_fts fts
         JOIN files f ON f.path = fts.path
         WHERE file_content_fts MATCH ?
@@ -102,7 +102,7 @@ public final class SqlQueries {
         String hiddenClause = filterHidden ? "AND f.is_hidden = ?\n" : "";
 
         return """
-        SELECT f.file_name, f.path, f.preview
+       SELECT f.file_name, f.path, f.preview, f.modified_at, f.path_score
         FROM files f
         WHERE LOWER(f.path) LIKE ?
           %s
@@ -116,7 +116,7 @@ public final class SqlQueries {
         String hiddenClause = filterHidden ? "AND f.is_hidden = ?\n" : "";
 
         return """
-        SELECT f.file_name, f.path, f.preview
+        SELECT f.file_name, f.path, f.preview, f.modified_at, f.path_score
         FROM files f
         WHERE f.path LIKE ?
           AND LOWER(f.path) LIKE ?

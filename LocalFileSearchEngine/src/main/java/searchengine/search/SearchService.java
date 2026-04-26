@@ -2,6 +2,8 @@ package searchengine.search;
 
 import searchengine.config.IndexingRules;
 import searchengine.db.SearchRepository;
+import searchengine.ranking.*;
+
 
 import java.util.List;
 
@@ -28,17 +30,25 @@ public class SearchService {
     }
 
     public List<SearchResult> search(String query, String rootPath) {
+        return search(query, rootPath, new PathScoreStrategy());
+    }
+
+    public List<SearchResult> search(String query, String rootPath, RankingStrategy strategy) {
         SearchQuery parsedQuery = queryParser.parse(query);
 
         if (parsedQuery.isEmpty()) {
             return List.of();
         }
 
+        List<SearchResult> results;
+
         if (rootPath == null || rootPath.isBlank()) {
-            return searchRepository.searchByContent(parsedQuery, indexingRules);
+            results = searchRepository.searchByContent(parsedQuery, indexingRules);
+        } else {
+            results = searchRepository.searchByContentUnderRoot(parsedQuery, rootPath, indexingRules);
         }
 
-        return searchRepository.searchByContentUnderRoot(parsedQuery, rootPath, indexingRules);
+        return strategy.rank(results);
     }
 
     public void printResults(String query) {

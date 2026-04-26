@@ -5,18 +5,21 @@ import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import searchengine.search.SearchResult;
 import searchengine.search.SearchService;
 import searchengine.ui.component.SearchResultCell;
 import searchengine.ui.component.SearchResultDetailsDialog;
+import searchengine.ranking.*;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -33,6 +36,8 @@ public class SearchController {
     private final TextField searchField = new TextField();
     private final Button searchButton = new Button("Search");
     private final Label statusLabel = new Label("No results yet.");
+
+    private final ComboBox<RankingStrategy> rankingComboBox = new ComboBox<>();
 
     private final Supplier<Boolean> indexingInProgressSupplier;
 
@@ -68,9 +73,39 @@ public class SearchController {
 
     private void buildSearchBar() {
         searchField.setPromptText("Search content... e.g. hello or \"root path\"");
-        searchField.setPrefWidth(500);
 
-        HBox row = new HBox(10, searchField, searchButton);
+        searchField.setPrefWidth(300);
+        searchField.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(searchField, Priority.ALWAYS);
+
+        rankingComboBox.setPrefWidth(160);
+        rankingComboBox.setMinWidth(160);
+
+        rankingComboBox.setItems(FXCollections.observableArrayList(
+                new PathScoreStrategy(),
+                new ModifiedDateStrategy(),
+                new AlphabeticalStrategy()
+        ));
+
+        rankingComboBox.setValue(rankingComboBox.getItems().get(0));
+
+        rankingComboBox.setCellFactory(list -> new javafx.scene.control.ListCell<>() {
+            @Override
+            protected void updateItem(RankingStrategy item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.getDisplayName());
+            }
+        });
+
+        rankingComboBox.setButtonCell(new javafx.scene.control.ListCell<>() {
+            @Override
+            protected void updateItem(RankingStrategy item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.getDisplayName());
+            }
+        });
+
+        HBox row = new HBox(10, searchField, searchButton, rankingComboBox);
         row.setAlignment(Pos.CENTER_LEFT);
 
         searchBarView.getChildren().addAll(row, statusLabel);
@@ -86,6 +121,7 @@ public class SearchController {
     private void bindActions() {
         searchButton.setOnAction(event -> performSearch());
         searchField.setOnAction(event -> performSearch());
+        rankingComboBox.setOnAction(event -> performSearch());
 
         ChangeListener<String> liveSearchListener = (obs, oldValue, newValue) -> performSearch();
         searchField.textProperty().addListener(liveSearchListener);
@@ -110,7 +146,12 @@ public class SearchController {
         }
 
         try {
-            List<SearchResult> results = searchService.search(query, rootPathSupplier.get());
+            List<SearchResult> results = searchService.search(
+                    query,
+                    rootPathSupplier.get(),
+                    rankingComboBox.getValue()
+            );
+
             resultsList.setItems(FXCollections.observableArrayList(results));
 
             String suffix = indexingInProgressSupplier.get()
@@ -140,6 +181,9 @@ public class SearchController {
 
     public Button getSearchButton() {
         return searchButton;
+    }
+    public ComboBox<RankingStrategy> getRankingComboBox() {
+        return rankingComboBox;
     }
 
 }

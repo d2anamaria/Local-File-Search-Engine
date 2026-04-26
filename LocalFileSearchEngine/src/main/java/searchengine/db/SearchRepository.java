@@ -70,7 +70,9 @@ public class SearchRepository {
                     SearchResult result = new SearchResult(
                             rs.getString("file_name"),
                             rs.getString("path"),
-                            rs.getString("preview")
+                            rs.getString("preview"),
+                            rs.getString("modified_at"),
+                            rs.getDouble("path_score")
                     );
 
                     if (matchesRuntimeFileFilters(result, rules)) {
@@ -141,7 +143,9 @@ public class SearchRepository {
                     SearchResult result = new SearchResult(
                             rs.getString("file_name"),
                             rs.getString("path"),
-                            rs.getString("preview")
+                            rs.getString("preview"),
+                            rs.getString("modified_at"),
+                            rs.getDouble("path_score")
                     );
 
                     if (matchesRuntimeFileFilters(result, rules)) {
