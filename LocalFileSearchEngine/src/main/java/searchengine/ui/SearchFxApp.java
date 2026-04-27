@@ -5,12 +5,10 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import searchengine.config.IndexingRules;
 import searchengine.crawler.RecursiveFileCrawler;
-import searchengine.db.DatabaseManager;
-import searchengine.db.FileIndexRepository;
-import searchengine.db.SchemaInitializer;
-import searchengine.db.SearchRepository;
+import searchengine.db.*;
 import searchengine.extractor.TextExtractor;
 import searchengine.indexer.Indexer;
+import searchengine.search.SearchHistoryService;
 import searchengine.search.SearchService;
 import searchengine.ui.controller.MainController;
 
@@ -40,6 +38,14 @@ public class SearchFxApp extends Application {
 
         SearchRepository searchRepository = new SearchRepository(searchConnection);
         SearchService searchService = new SearchService(searchRepository, indexingRules);
+
+        SearchHistoryRepository historyRepository =
+                new SearchHistoryRepository(searchConnection);
+
+        SearchHistoryService historyService =
+                new SearchHistoryService(historyRepository);
+
+        searchService.addSearchObserver(historyService);
 
         MainController controller = new MainController(
                 searchService,

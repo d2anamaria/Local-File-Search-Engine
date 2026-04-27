@@ -3,6 +3,7 @@ package searchengine.search;
 import searchengine.config.IndexingRules;
 import searchengine.db.SearchRepository;
 import searchengine.ranking.*;
+import java.util.ArrayList;
 
 
 import java.util.List;
@@ -12,11 +13,34 @@ public class SearchService {
     private final SearchRepository searchRepository;
     private final IndexingRules indexingRules;
     private final QueryParser queryParser;
+    private final List<SearchObserver> searchObservers = new ArrayList<>();
 
     public SearchService(SearchRepository searchRepository, IndexingRules indexingRules) {
         this.searchRepository = searchRepository;
         this.indexingRules = indexingRules;
         this.queryParser = new QueryParser();
+    }
+
+    public void addSearchObserver(SearchObserver observer) {
+        if (observer != null) {
+            searchObservers.add(observer);
+        }
+    }
+
+    private void notifySearchPerformed(String query) {
+        for (SearchObserver observer : searchObservers) {
+            observer.onSearchPerformed(query);
+        }
+    }
+
+    public List<String> findSuggestions(String prefix) {
+        for (SearchObserver observer : searchObservers) {
+            if (observer instanceof SearchHistoryService historyService) {
+                return historyService.findSuggestions(prefix);
+            }
+        }
+
+        return List.of();
     }
 
     public List<SearchResult> search(String query) {
@@ -39,6 +63,8 @@ public class SearchService {
         if (parsedQuery.isEmpty()) {
             return List.of();
         }
+
+        notifySearchPerformed(query);
 
         List<SearchResult> results;
 

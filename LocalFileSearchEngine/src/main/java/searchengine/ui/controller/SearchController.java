@@ -20,6 +20,9 @@ import searchengine.search.SearchService;
 import searchengine.ui.component.SearchResultCell;
 import searchengine.ui.component.SearchResultDetailsDialog;
 import searchengine.ranking.*;
+import javafx.geometry.Side;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.MenuItem;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -38,6 +41,7 @@ public class SearchController {
     private final Label statusLabel = new Label("No results yet.");
 
     private final ComboBox<RankingStrategy> rankingComboBox = new ComboBox<>();
+    private final ContextMenu suggestionsPopup = new ContextMenu();
 
     private final Supplier<Boolean> indexingInProgressSupplier;
 
@@ -108,7 +112,7 @@ public class SearchController {
         HBox row = new HBox(10, searchField, searchButton, rankingComboBox);
         row.setAlignment(Pos.CENTER_LEFT);
 
-        searchBarView.getChildren().addAll(row, statusLabel);
+        searchBarView.getChildren().addAll(row);
         searchBarView.setPadding(new Insets(0, 16, 10, 16));
         searchBarView.setSpacing(10);
     }
@@ -123,7 +127,11 @@ public class SearchController {
         searchField.setOnAction(event -> performSearch());
         rankingComboBox.setOnAction(event -> performSearch());
 
-        ChangeListener<String> liveSearchListener = (obs, oldValue, newValue) -> performSearch();
+        ChangeListener<String> liveSearchListener = (obs, oldValue, newValue) -> {
+            updateSuggestions(newValue);
+            performSearch();
+        };
+
         searchField.textProperty().addListener(liveSearchListener);
 
         resultsList.setOnMouseClicked(event -> {
@@ -134,6 +142,41 @@ public class SearchController {
                 }
             }
         });
+
+        searchField.focusedProperty().addListener((obs, wasFocused, isFocused) -> {
+            if (!isFocused) {
+                suggestionsPopup.hide();
+            }
+        });
+    }
+
+    private void updateSuggestions(String text) {
+        if (text == null || text.isBlank() || text.trim().length() < 2) {
+            suggestionsPopup.hide();
+            return;
+        }
+
+        List<String> suggestions = searchService.findSuggestions(text);
+
+        suggestionsPopup.getItems().clear();
+
+        for (String suggestion : suggestions) {
+            MenuItem item = new MenuItem(suggestion);
+
+            item.setOnAction(event -> {
+                searchField.setText(suggestion);
+                suggestionsPopup.hide();
+                performSearch();
+            });
+
+            suggestionsPopup.getItems().add(item);
+        }
+
+        if (!suggestions.isEmpty()) {
+            suggestionsPopup.show(searchField, Side.BOTTOM, 0, 0);
+        } else {
+            suggestionsPopup.hide();
+        }
     }
 
     private void performSearch() {

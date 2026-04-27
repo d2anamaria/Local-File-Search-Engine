@@ -62,6 +62,7 @@ public class SchemaInitializer {
                 ON files(path_score);
             """);
 
+            stmt.execute(SqlQueries.CREATE_SEARCH_HISTORY_TABLE);
             System.out.println("Database schema initialized successfully.");
         }
     }
