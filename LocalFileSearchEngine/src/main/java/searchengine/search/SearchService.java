@@ -64,7 +64,6 @@ public class SearchService {
             return List.of();
         }
 
-        notifySearchPerformed(query);
 
         List<SearchResult> results;
 
@@ -88,5 +87,15 @@ public class SearchService {
         for (SearchResult result : results) {
             System.out.println(result);
         }
+    }
+
+    public void recordSearchHistory(String query) {
+        SearchQuery parsedQuery = queryParser.parse(query);
+
+        if (parsedQuery.isEmpty()) {
+            return;
+        }
+
+        notifySearchPerformed(query);
     }
 }

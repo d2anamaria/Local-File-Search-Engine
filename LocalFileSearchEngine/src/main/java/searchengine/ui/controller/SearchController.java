@@ -23,6 +23,8 @@ import searchengine.ranking.*;
 import javafx.geometry.Side;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -42,6 +44,7 @@ public class SearchController {
 
     private final ComboBox<RankingStrategy> rankingComboBox = new ComboBox<>();
     private final ContextMenu suggestionsPopup = new ContextMenu();
+    private final PauseTransition historyDelay = new PauseTransition(Duration.seconds(1));
 
     private final Supplier<Boolean> indexingInProgressSupplier;
 
@@ -130,6 +133,15 @@ public class SearchController {
         ChangeListener<String> liveSearchListener = (obs, oldValue, newValue) -> {
             updateSuggestions(newValue);
             performSearch();
+
+            historyDelay.stop();
+
+            historyDelay.setOnFinished(event -> {
+                String finalQuery = searchField.getText();
+                searchService.recordSearchHistory(finalQuery);
+            });
+
+            historyDelay.playFromStart();
         };
 
         searchField.textProperty().addListener(liveSearchListener);
