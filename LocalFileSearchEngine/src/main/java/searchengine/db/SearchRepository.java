@@ -35,11 +35,12 @@ public class SearchRepository {
                 ? SqlQueries.searchContentAndOptionalPathWithRules(
                 enabledExtensions.size(),
                 !rules.isIncludeHiddenFiles(),
-                hasPath
+                query.getPath().size()
         )
                 : SqlQueries.searchByPathOnlyWithRules(
                 enabledExtensions.size(),
-                !rules.isIncludeHiddenFiles()
+                !rules.isIncludeHiddenFiles(),
+                query.getPath().size()
         );
 
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -49,10 +50,14 @@ public class SearchRepository {
                 ps.setString(parameterIndex++, toFtsAndQuery(query.getContent()));
 
                 if (hasPath) {
-                    ps.setString(parameterIndex++, "%" + query.getPath().toLowerCase() + "%");
+                    for (String pathPart : query.getPath()) {
+                        ps.setString(parameterIndex++, "%" + pathPart.toLowerCase() + "%");
+                    }
                 }
             } else {
-                ps.setString(parameterIndex++, "%" + query.getPath().toLowerCase() + "%");
+                for (String pathPart : query.getPath()) {
+                    ps.setString(parameterIndex++, "%" + pathPart.toLowerCase() + "%");
+                }
             }
 
             if (!rules.isIncludeHiddenFiles()) {
@@ -106,11 +111,12 @@ public class SearchRepository {
                 ? SqlQueries.searchContentAndOptionalPathUnderRootWithRules(
                 enabledExtensions.size(),
                 !rules.isIncludeHiddenFiles(),
-                hasPath
+                query.getPath().size()
         )
                 : SqlQueries.searchByPathOnlyUnderRootWithRules(
                 enabledExtensions.size(),
-                !rules.isIncludeHiddenFiles()
+                !rules.isIncludeHiddenFiles(),
+                query.getPath().size()
         );
 
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -121,11 +127,15 @@ public class SearchRepository {
                 ps.setString(parameterIndex++, normalizeRootPrefix(rootPath));
 
                 if (hasPath) {
-                    ps.setString(parameterIndex++, "%" + query.getPath().toLowerCase() + "%");
+                    for (String pathPart : query.getPath()) {
+                        ps.setString(parameterIndex++, "%" + pathPart.toLowerCase() + "%");
+                    }
                 }
             } else {
                 ps.setString(parameterIndex++, normalizeRootPrefix(rootPath));
-                ps.setString(parameterIndex++, "%" + query.getPath().toLowerCase() + "%");
+                for (String pathPart : query.getPath()) {
+                    ps.setString(parameterIndex++, "%" + pathPart.toLowerCase() + "%");
+                }
             }
 
             if (!rules.isIncludeHiddenFiles()) {
@@ -160,13 +170,14 @@ public class SearchRepository {
         return results;
     }
 
-    private String toFtsAndQuery(String content) {
-        String[] words = content.trim().split("\\s+");
+    private String toFtsAndQuery(List<String> contentParts) {
         List<String> terms = new ArrayList<>();
 
-        for (String word : words) {
-            if (!word.isBlank()) {
-                terms.add(word + "*");
+        for (String part : contentParts) {
+            for (String word : part.trim().split("\\s+")) {
+                if (!word.isBlank()) {
+                    terms.add(word + "*");
+                }
             }
         }
 

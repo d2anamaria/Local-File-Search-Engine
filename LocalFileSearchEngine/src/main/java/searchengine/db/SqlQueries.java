@@ -83,10 +83,10 @@ public final class SqlQueries {
     public static String searchContentAndOptionalPathWithRules(
             int extensionCount,
             boolean filterHidden,
-            boolean filterPath
+            int pathCount
     ) {
         String hiddenClause = filterHidden ? "AND f.is_hidden = ?\n" : "";
-        String pathClause = filterPath ? "AND LOWER(f.path) LIKE ?\n" : "";
+        String pathClause = pathClauses(pathCount);
 
         return """
         SELECT f.file_name, f.path, f.preview, f.modified_at, f.path_score
@@ -104,10 +104,10 @@ public final class SqlQueries {
     public static String searchContentAndOptionalPathUnderRootWithRules(
             int extensionCount,
             boolean filterHidden,
-            boolean filterPath
+            int pathCount
     ) {
         String hiddenClause = filterHidden ? "AND f.is_hidden = ?\n" : "";
-        String pathClause = filterPath ? "AND LOWER(f.path) LIKE ?\n" : "";
+        String pathClause = pathClauses(pathCount);
 
         return """
         SELECT f.file_name, f.path, f.preview, f.modified_at, f.path_score
@@ -123,33 +123,40 @@ public final class SqlQueries {
         """.formatted(pathClause, hiddenClause, placeholders(extensionCount));
     }
 
-    public static String searchByPathOnlyWithRules(int extensionCount, boolean filterHidden) {
+    public static String searchByPathOnlyWithRules(int extensionCount, boolean filterHidden, int pathCount) {
         String hiddenClause = filterHidden ? "AND f.is_hidden = ?\n" : "";
+        String pathClause = pathClauses(pathCount);
 
         return """
        SELECT f.file_name, f.path, f.preview, f.modified_at, f.path_score
         FROM files f
-        WHERE LOWER(f.path) LIKE ?
+        WHERE 1 = 1
+          %s
           %s
           AND f.size_bytes <= ?
           AND f.extension IN (%s)
           ORDER BY f.path_score DESC
-        """.formatted(hiddenClause, placeholders(extensionCount));
+        """.formatted(pathClause, hiddenClause, placeholders(extensionCount));
     }
 
-    public static String searchByPathOnlyUnderRootWithRules(int extensionCount, boolean filterHidden) {
+    public static String searchByPathOnlyUnderRootWithRules(int extensionCount, boolean filterHidden, int pathCount) {
         String hiddenClause = filterHidden ? "AND f.is_hidden = ?\n" : "";
+        String pathClause = pathClauses(pathCount);
 
         return """
         SELECT f.file_name, f.path, f.preview, f.modified_at, f.path_score
         FROM files f
         WHERE f.path LIKE ?
-          AND LOWER(f.path) LIKE ?
+          %s
           %s
           AND f.size_bytes <= ?
           AND f.extension IN (%s)
           ORDER BY f.path_score DESC
-        """.formatted(hiddenClause, placeholders(extensionCount));
+        """.formatted(pathClause, hiddenClause, placeholders(extensionCount));
+    }
+
+    private static String pathClauses(int count) {
+        return "AND LOWER(f.path) LIKE ?\n".repeat(count);
     }
 
     private static String placeholders(int count) {

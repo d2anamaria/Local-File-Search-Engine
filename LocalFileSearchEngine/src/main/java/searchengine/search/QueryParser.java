@@ -12,7 +12,7 @@ public class QueryParser {
 
     public SearchQuery parse(String rawQuery) {
         if (rawQuery == null || rawQuery.isBlank()) {
-            return new SearchQuery("", "");
+            return new SearchQuery(List.of(), List.of());
         }
 
         List<String> contentParts = new ArrayList<>();
@@ -61,12 +61,24 @@ public class QueryParser {
         }
 
         return new SearchQuery(
-                normalize(String.join(" ", contentParts)),
-                normalize(String.join(" ", pathParts))
+                normalizeParts(contentParts),
+                normalizeParts(pathParts)
         );
     }
 
     private String normalize(String text) {
         return text == null ? "" : text.trim().replaceAll("\\s+", " ");
+    }
+    private List<String> normalizeParts(List<String> parts) {
+        List<String> normalized = new ArrayList<>();
+
+        for (String part : parts) {
+            String value = normalize(part);
+            if (!value.isBlank()) {
+                normalized.add(value);
+            }
+        }
+
+        return normalized;
     }
 }

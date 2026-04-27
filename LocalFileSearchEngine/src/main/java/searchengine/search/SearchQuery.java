@@ -1,21 +1,29 @@
 package searchengine.search;
 
-public class SearchQuery {
-    private final String content;
-    private final String path;
+import java.util.List;
 
-    public SearchQuery(String content, String path) {
-        this.content = content == null ? "" : content.trim();
-        this.path = path == null ? "" : path.trim();
+public class SearchQuery {
+    private final List<String> content;
+    private final List<String>  path;
+
+    public SearchQuery(List<String>  content, List<String>  path) {
+        this.content = content;
+        this.path = path;
     }
 
-    public String getContent() { return content; }
-    public String getPath() { return path; }
+    public List<String>  getContent() { return content; }
+    public List<String>  getPath() { return path; }
 
-    public boolean hasContent() { return !content.isBlank(); }
-    public boolean hasPath() { return !path.isBlank(); }
+    public boolean hasContent() {
+        return content != null && !content.isEmpty();
+    }
+
+    public boolean hasPath() {
+        return path != null && !path.isEmpty();
+    }
 
     public boolean isEmpty() {
         return !hasContent() && !hasPath();
     }
+
 }
