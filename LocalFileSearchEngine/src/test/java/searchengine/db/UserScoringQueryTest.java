@@ -3,6 +3,9 @@ package searchengine.db;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import searchengine.config.IndexingRules;
+import searchengine.db.infrastructure.SchemaInitializer;
+import searchengine.db.repository.SearchRepository;
+import searchengine.db.sql.*;
 import searchengine.search.QueryParser;
 import searchengine.search.SearchQuery;
 import searchengine.search.SearchResult;
@@ -179,7 +182,7 @@ class UserScoringQueryTest {
             String content,
             double pathScore
     ) throws Exception {
-        try (PreparedStatement ps = connection.prepareStatement(SqlQueries.INSERT_OR_REPLACE_FILE)) {
+        try (PreparedStatement ps = connection.prepareStatement(FileSql.INSERT_OR_REPLACE_FILE)) {
             ps.setString(1, path);
             ps.setString(2, fileName);
             ps.setString(3, extension);
@@ -200,7 +203,7 @@ class UserScoringQueryTest {
             ps.executeUpdate();
         }
 
-        try (PreparedStatement ps = connection.prepareStatement(SqlQueries.INSERT_FTS_ROW)) {
+        try (PreparedStatement ps = connection.prepareStatement(FileSql.INSERT_FTS_ROW)) {
             ps.setString(1, fileName);
             ps.setString(2, path);
             ps.setString(3, content);
@@ -257,7 +260,7 @@ class UserScoringQueryTest {
             double pathScore,
             String modifiedAt
     ) throws Exception {
-        try (PreparedStatement ps = connection.prepareStatement(SqlQueries.INSERT_OR_REPLACE_FILE)) {
+        try (PreparedStatement ps = connection.prepareStatement(FileSql.INSERT_OR_REPLACE_FILE)) {
             ps.setString(1, path);
             ps.setString(2, fileName);
             ps.setString(3, extension);
@@ -278,7 +281,7 @@ class UserScoringQueryTest {
             ps.executeUpdate();
         }
 
-        try (PreparedStatement ps = connection.prepareStatement(SqlQueries.INSERT_FTS_ROW)) {
+        try (PreparedStatement ps = connection.prepareStatement(FileSql.INSERT_FTS_ROW)) {
             ps.setString(1, fileName);
             ps.setString(2, path);
             ps.setString(3, content);

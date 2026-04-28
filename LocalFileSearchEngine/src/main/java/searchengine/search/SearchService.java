@@ -1,12 +1,12 @@
 package searchengine.search;
 
 import searchengine.config.IndexingRules;
-import searchengine.db.ResultInteractionRepository;
-import searchengine.db.SearchRepository;
-import searchengine.db.TermFileInteractionRepository;
+import searchengine.db.repository.ResultInteractionRepository;
+import searchengine.db.repository.SearchRepository;
+import searchengine.db.repository.TermFileInteractionRepository;
 import searchengine.ranking.*;
 import java.util.ArrayList;
-import searchengine.search.ResultInteractionService;
+
 import searchengine.ui.util.QueryTermExtractor;
 
 import java.util.List;

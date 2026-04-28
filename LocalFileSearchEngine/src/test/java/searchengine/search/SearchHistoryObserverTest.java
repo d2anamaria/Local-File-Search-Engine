@@ -3,7 +3,9 @@ package searchengine.search;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import searchengine.config.IndexingRules;
-import searchengine.db.*;
+import searchengine.db.infrastructure.SchemaInitializer;
+import searchengine.db.repository.SearchHistoryRepository;
+import searchengine.db.repository.SearchRepository;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

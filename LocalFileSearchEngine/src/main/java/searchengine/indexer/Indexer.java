@@ -3,7 +3,7 @@ package searchengine.indexer;
 import searchengine.crawler.CrawlResult;
 import searchengine.crawler.CrawlStats;
 import searchengine.crawler.RecursiveFileCrawler;
-import searchengine.db.FileIndexRepository;
+import searchengine.db.repository.FileIndexRepository;
 import searchengine.extractor.TextExtractor;
 import searchengine.ranking.PathScore;
 

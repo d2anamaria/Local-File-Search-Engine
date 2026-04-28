@@ -1,6 +1,6 @@
 package searchengine.search;
 
-import searchengine.db.SearchHistoryRepository;
+import searchengine.db.repository.SearchHistoryRepository;
 
 import java.util.List;
 

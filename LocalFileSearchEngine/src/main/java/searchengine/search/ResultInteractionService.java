@@ -1,6 +1,6 @@
 package searchengine.search;
 
-import searchengine.db.ResultInteractionRepository;
+import searchengine.db.repository.ResultInteractionRepository;
 
 public class ResultInteractionService {
 
