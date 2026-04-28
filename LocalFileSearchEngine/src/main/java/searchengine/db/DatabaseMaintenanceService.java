@@ -31,6 +31,8 @@ public class DatabaseMaintenanceService {
         try (PreparedStatement ps = connection.prepareStatement(SqlQueries.DELETE_OLD_RESULT_INTERACTIONS)) {
             ps.setDouble(1, days);
             ps.executeUpdate();
+            deleteOldTermFileInteractions(connection, 90);
+            deleteOrphanTermFileInteractions(connection);
         }
     }
 
@@ -46,6 +48,21 @@ public class DatabaseMaintenanceService {
         try (PreparedStatement ps = connection.prepareStatement(SqlQueries.DELETE_ORPHAN_RESULT_INTERACTIONS)) {
             int deleted = ps.executeUpdate();
             System.out.println("[DB MAINTENANCE] Deleted " + deleted + " orphan interactions");
+        }
+    }
+
+    private void deleteOldTermFileInteractions(Connection connection, double days) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement(SqlQueries.DELETE_OLD_TERM_FILE_INTERACTIONS)) {
+            ps.setDouble(1, days);
+            int deleted = ps.executeUpdate();
+            System.out.println("[DB MAINTENANCE] Deleted " + deleted + " old term-file interactions");
+        }
+    }
+
+    private void deleteOrphanTermFileInteractions(Connection connection) throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement(SqlQueries.DELETE_ORPHAN_TERM_FILE_INTERACTIONS)) {
+            int deleted = ps.executeUpdate();
+            System.out.println("[DB MAINTENANCE] Deleted " + deleted + " orphan term-file interactions");
         }
     }
 }

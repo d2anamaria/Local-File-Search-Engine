@@ -130,27 +130,61 @@ public final class SqlQueries {
     + LOG(1 + COALESCE(ri.copy_path_count, 0)) * 2.5
     + LOG(1 + COALESCE(ext.dynamic_extension_count, 0)) * 0.1
     + (1.0 / (1 + (julianday('now') - julianday(f.modified_at)))) * 0.5
+    + LOG(1 + COALESCE(tfi.term_file_score, 0)) * 4.0
     AS user_relevance_score
 """;
 
-    private static final String RESULT_INTERACTIONS_JOIN = """
-    LEFT JOIN result_interactions ri ON ri.path = f.path
-    LEFT JOIN (
-        SELECT
-            f2.extension,
-            SUM(ri2.click_count + ri2.copy_path_count) AS dynamic_extension_count
-        FROM result_interactions ri2
-        JOIN files f2 ON f2.path = ri2.path
-        WHERE f2.extension IS NOT NULL
-          AND f2.extension <> ''
-        GROUP BY f2.extension
-    ) ext ON ext.extension = f.extension
-""";
+
+    // term + file pairs
+
+    public static final String CREATE_TERM_FILE_INTERACTIONS_TABLE = """
+    CREATE TABLE IF NOT EXISTS term_file_interactions (
+        term TEXT NOT NULL,
+        path TEXT NOT NULL,
+        score REAL NOT NULL DEFAULT 0,
+        last_used TEXT NOT NULL,
+        PRIMARY KEY (term, path)
+    )
+    """;
+
+    public static final String UPSERT_TERM_FILE_INTERACTION = """
+    INSERT INTO term_file_interactions(term, path, score, last_used)
+    VALUES (?, ?, 1, ?)
+    ON CONFLICT(term, path)
+    DO UPDATE SET
+        score = score * 0.97 + 1,
+        last_used = excluded.last_used
+    """;
+
+    public static final String KEEP_TOP_FILES_FOR_TERM = """
+    DELETE FROM term_file_interactions
+    WHERE term = ?
+      AND path IN (
+          SELECT path
+          FROM term_file_interactions
+          WHERE term = ?
+          ORDER BY score DESC, last_used DESC
+          LIMIT -1 OFFSET ?
+      )
+    """;
+
+    public static final String DELETE_OLD_TERM_FILE_INTERACTIONS = """
+    DELETE FROM term_file_interactions
+    WHERE julianday('now') - julianday(last_used) > ?
+    """;
+
+    public static final String DELETE_ORPHAN_TERM_FILE_INTERACTIONS = """
+    DELETE FROM term_file_interactions
+    WHERE path NOT IN (
+        SELECT path FROM files
+    )
+    """;
 
     public static String searchContentAndOptionalPathWithRules(
             int extensionCount,
             boolean filterHidden,
-            int pathCount
+            int pathCount,
+            int termCount
     ) {
         String hiddenClause = filterHidden ? "AND f.is_hidden = ?\n" : "";
         String pathClause = pathClauses(pathCount);
@@ -166,13 +200,14 @@ public final class SqlQueries {
           AND f.size_bytes <= ?
           AND f.extension IN (%s)
           ORDER BY f.path_score DESC
-        """.formatted(USER_RELEVANCE_SELECT, RESULT_INTERACTIONS_JOIN, pathClause, hiddenClause, placeholders(extensionCount));
+        """.formatted(USER_RELEVANCE_SELECT, resultInteractionsJoin(termCount), pathClause, hiddenClause, placeholders(extensionCount));
     }
 
     public static String searchContentAndOptionalPathUnderRootWithRules(
             int extensionCount,
             boolean filterHidden,
-            int pathCount
+            int pathCount,
+            int termCount
     ) {
         String hiddenClause = filterHidden ? "AND f.is_hidden = ?\n" : "";
         String pathClause = pathClauses(pathCount);
@@ -189,10 +224,10 @@ public final class SqlQueries {
           AND f.size_bytes <= ?
           AND f.extension IN (%s)
           ORDER BY f.path_score DESC
-        """.formatted( USER_RELEVANCE_SELECT, RESULT_INTERACTIONS_JOIN, pathClause, hiddenClause, placeholders(extensionCount));
+        """.formatted( USER_RELEVANCE_SELECT, resultInteractionsJoin(termCount), pathClause, hiddenClause, placeholders(extensionCount));
     }
 
-    public static String searchByPathOnlyWithRules(int extensionCount, boolean filterHidden, int pathCount) {
+    public static String searchByPathOnlyWithRules(int extensionCount, boolean filterHidden, int pathCount, int termCount) {
         String hiddenClause = filterHidden ? "AND f.is_hidden = ?\n" : "";
         String pathClause = pathClauses(pathCount);
 
@@ -206,10 +241,10 @@ public final class SqlQueries {
           AND f.size_bytes <= ?
           AND f.extension IN (%s)
           ORDER BY f.path_score DESC
-        """.formatted(USER_RELEVANCE_SELECT, RESULT_INTERACTIONS_JOIN, pathClause, hiddenClause, placeholders(extensionCount));
+        """.formatted(USER_RELEVANCE_SELECT, resultInteractionsJoin(termCount), pathClause, hiddenClause, placeholders(extensionCount));
     }
 
-    public static String searchByPathOnlyUnderRootWithRules(int extensionCount, boolean filterHidden, int pathCount) {
+    public static String searchByPathOnlyUnderRootWithRules(int extensionCount, boolean filterHidden, int pathCount, int termCount) {
         String hiddenClause = filterHidden ? "AND f.is_hidden = ?\n" : "";
         String pathClause = pathClauses(pathCount);
 
@@ -223,7 +258,43 @@ public final class SqlQueries {
           AND f.size_bytes <= ?
           AND f.extension IN (%s)
           ORDER BY f.path_score DESC
-        """.formatted(USER_RELEVANCE_SELECT, RESULT_INTERACTIONS_JOIN, pathClause, hiddenClause, placeholders(extensionCount));
+        """.formatted(USER_RELEVANCE_SELECT, resultInteractionsJoin(termCount), pathClause, hiddenClause, placeholders(extensionCount));
+    }
+
+    private static String resultInteractionsJoin(int termCount) {
+        String termFileJoin;
+
+        if (termCount <= 0) {
+            termFileJoin = """
+            LEFT JOIN (
+                SELECT NULL AS path, 0 AS term_file_score
+            ) tfi ON tfi.path = f.path
+        """;
+        } else {
+            termFileJoin = """
+            LEFT JOIN (
+                SELECT path, SUM(score) AS term_file_score
+                FROM term_file_interactions
+                WHERE term IN (%s)
+                GROUP BY path
+            ) tfi ON tfi.path = f.path
+        """.formatted(placeholders(termCount));
+        }
+
+        return """
+        LEFT JOIN result_interactions ri ON ri.path = f.path
+        LEFT JOIN (
+            SELECT
+                f2.extension,
+                SUM(ri2.click_count + ri2.copy_path_count) AS dynamic_extension_count
+            FROM result_interactions ri2
+            JOIN files f2 ON f2.path = ri2.path
+            WHERE f2.extension IS NOT NULL
+              AND f2.extension <> ''
+            GROUP BY f2.extension
+        ) ext ON ext.extension = f.extension
+        %s
+    """.formatted(termFileJoin);
     }
 
     private static String pathClauses(int count) {

@@ -3,6 +3,7 @@ package searchengine.db;
 import searchengine.config.IndexingRules;
 import searchengine.search.SearchQuery;
 import searchengine.search.SearchResult;
+import searchengine.ui.util.QueryTermExtractor;
 
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -15,6 +16,7 @@ import java.util.Set;
 public class SearchRepository {
 
     private final Connection connection;
+    private final QueryTermExtractor queryTermExtractor = new QueryTermExtractor();
 
     public SearchRepository(Connection connection) {
         this.connection = connection;
@@ -34,21 +36,29 @@ public class SearchRepository {
 
         boolean hasContent = query.hasContent();
         boolean hasPath = query.hasPath();
+        List<String> terms = queryTermExtractor.extractTerms(query);
+
 
         String sql = hasContent
                 ? SqlQueries.searchContentAndOptionalPathWithRules(
                 enabledExtensions.size(),
                 !rules.isIncludeHiddenFiles(),
-                query.getPath().size()
+                query.getPath().size(),
+                terms.size()
         )
                 : SqlQueries.searchByPathOnlyWithRules(
                 enabledExtensions.size(),
                 !rules.isIncludeHiddenFiles(),
-                query.getPath().size()
+                query.getPath().size(),
+                terms.size()
         );
 
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             int parameterIndex = 1;
+
+            for (String term : terms) {
+                ps.setString(parameterIndex++, term.toLowerCase());
+            }
 
             if (hasContent) {
                 ps.setString(parameterIndex++, toFtsAndQuery(query.getContent()));
@@ -110,21 +120,28 @@ public class SearchRepository {
 
         boolean hasContent = query.hasContent();
         boolean hasPath = query.hasPath();
+        List<String> terms = queryTermExtractor.extractTerms(query);
 
         String sql = hasContent
                 ? SqlQueries.searchContentAndOptionalPathUnderRootWithRules(
                 enabledExtensions.size(),
                 !rules.isIncludeHiddenFiles(),
-                query.getPath().size()
+                query.getPath().size(),
+                terms.size()
         )
                 : SqlQueries.searchByPathOnlyUnderRootWithRules(
                 enabledExtensions.size(),
                 !rules.isIncludeHiddenFiles(),
-                query.getPath().size()
+                query.getPath().size(),
+                terms.size()
         );
 
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             int parameterIndex = 1;
+
+            for (String term : terms) {
+                ps.setString(parameterIndex++, term.toLowerCase());
+            }
 
             if (hasContent) {
                 ps.setString(parameterIndex++, toFtsAndQuery(query.getContent()));
@@ -147,6 +164,7 @@ public class SearchRepository {
             }
 
             ps.setLong(parameterIndex++, rules.getMaxIndexedFileSizeBytes());
+
 
             for (String extension : enabledExtensions) {
                 ps.setString(parameterIndex++, extension);

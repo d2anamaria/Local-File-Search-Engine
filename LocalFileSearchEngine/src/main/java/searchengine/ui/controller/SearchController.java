@@ -207,7 +207,7 @@ public class SearchController {
                 SearchResult selected = resultsList.getSelectionModel().getSelectedItem();
 
                 if (selected != null) {
-                    searchService.recordResultClick(selected);
+                    searchService.recordResultClick(selected, searchField.getText());
                     showResultDetails(selected);
                 }
             }
@@ -307,7 +307,7 @@ public class SearchController {
         SearchResultDetailsDialog dialog = new SearchResultDetailsDialog(
                 stage,
                 searchField.getText(),
-                () -> searchService.recordCopyPath(result)
+                () -> searchService.recordCopyPath(result, searchField.getText())
         );
 
         dialog.show(result);

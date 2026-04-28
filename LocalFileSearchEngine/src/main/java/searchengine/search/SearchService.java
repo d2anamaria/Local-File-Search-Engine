@@ -3,9 +3,12 @@ package searchengine.search;
 import searchengine.config.IndexingRules;
 import searchengine.db.ResultInteractionRepository;
 import searchengine.db.SearchRepository;
+import searchengine.db.TermFileInteractionRepository;
 import searchengine.ranking.*;
 import java.util.ArrayList;
 import searchengine.search.ResultInteractionService;
+import searchengine.ui.util.QueryTermExtractor;
+
 import java.util.List;
 
 public class SearchService {
@@ -15,6 +18,8 @@ public class SearchService {
     private final QueryParser queryParser;
     private final List<SearchObserver> searchObservers = new ArrayList<>();
     private final ResultInteractionService resultInteractionService;
+    private final TermFileInteractionRepository termFileInteractionRepository;
+    private final QueryTermExtractor queryTermExtractor;
 
     public SearchService(SearchRepository searchRepository, IndexingRules indexingRules) {
         this.searchRepository = searchRepository;
@@ -23,6 +28,9 @@ public class SearchService {
         this.resultInteractionService = new ResultInteractionService(
                 new ResultInteractionRepository(searchRepository.getConnection())
         );
+        this.termFileInteractionRepository =
+                new TermFileInteractionRepository(searchRepository.getConnection());
+        this.queryTermExtractor = new QueryTermExtractor();
     }
 
     public void addSearchObserver(SearchObserver observer) {
@@ -103,11 +111,29 @@ public class SearchService {
         notifySearchPerformed(query);
     }
 
-    public void recordResultClick(SearchResult result) {
+    public void recordResultClick(SearchResult result, String query) {
         resultInteractionService.recordClick(result);
+
+        if (result != null) {
+            SearchQuery parsedQuery = queryParser.parse(query);
+
+            for (String term : queryTermExtractor.extractTerms(parsedQuery)) {
+                termFileInteractionRepository.recordTermFileInteraction(term, result.getPath());
+            }
+        }
     }
 
-    public void recordCopyPath(SearchResult result) {
+    public void recordCopyPath(SearchResult result, String query) {
         resultInteractionService.recordCopyPath(result);
+
+        if (result != null) {
+            SearchQuery parsedQuery = queryParser.parse(query);
+
+            for (String term : queryTermExtractor.extractTerms(parsedQuery)) {
+                termFileInteractionRepository.recordTermFileInteraction(term, result.getPath());
+            }
+        }
     }
+
+
 }

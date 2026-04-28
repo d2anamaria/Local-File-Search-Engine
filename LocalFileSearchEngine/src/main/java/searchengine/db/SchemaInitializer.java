@@ -70,6 +70,12 @@ public class SchemaInitializer {
                 ON result_interactions(path);
             """);
 
+            stmt.execute(SqlQueries.CREATE_TERM_FILE_INTERACTIONS_TABLE);
+            stmt.execute("""
+                CREATE INDEX IF NOT EXISTS idx_term_file_term_score
+                ON term_file_interactions(term, score DESC, last_used DESC);
+            """);
+
             System.out.println("Database schema initialized successfully.");
         }
     }
