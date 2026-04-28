@@ -1,11 +1,11 @@
 package searchengine.search;
 
 import searchengine.config.IndexingRules;
+import searchengine.db.ResultInteractionRepository;
 import searchengine.db.SearchRepository;
 import searchengine.ranking.*;
 import java.util.ArrayList;
-
-
+import searchengine.search.ResultInteractionService;
 import java.util.List;
 
 public class SearchService {
@@ -14,11 +14,15 @@ public class SearchService {
     private final IndexingRules indexingRules;
     private final QueryParser queryParser;
     private final List<SearchObserver> searchObservers = new ArrayList<>();
+    private final ResultInteractionService resultInteractionService;
 
     public SearchService(SearchRepository searchRepository, IndexingRules indexingRules) {
         this.searchRepository = searchRepository;
         this.indexingRules = indexingRules;
         this.queryParser = new QueryParser();
+        this.resultInteractionService = new ResultInteractionService(
+                new ResultInteractionRepository(searchRepository.getConnection())
+        );
     }
 
     public void addSearchObserver(SearchObserver observer) {
@@ -97,5 +101,13 @@ public class SearchService {
         }
 
         notifySearchPerformed(query);
+    }
+
+    public void recordResultClick(SearchResult result) {
+        resultInteractionService.recordClick(result);
+    }
+
+    public void recordCopyPath(SearchResult result) {
+        resultInteractionService.recordCopyPath(result);
     }
 }

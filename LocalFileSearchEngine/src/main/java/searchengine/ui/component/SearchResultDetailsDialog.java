@@ -28,10 +28,12 @@ public class SearchResultDetailsDialog {
 
     private final Stage owner;
     private final String query;
+    private final Runnable onCopyPath;
 
-    public SearchResultDetailsDialog(Stage owner, String query) {
+    public SearchResultDetailsDialog(Stage owner, String query, Runnable onCopyPath) {
         this.owner = owner;
         this.query = query;
+        this.onCopyPath = onCopyPath;
     }
 
     public void show(SearchResult result) {
@@ -73,10 +75,22 @@ public class SearchResultDetailsDialog {
         VBox.setVgrow(contentScrollPane, Priority.ALWAYS);
 
         Button copyPathButton = new Button("Copy path");
-        copyPathButton.setOnAction(event -> copyPath(result.getPath()));
+        copyPathButton.setOnAction(event -> {
+            copyPath(result.getPath());
+
+            if (onCopyPath != null) {
+                onCopyPath.run();
+            }
+        });
 
         Button openFolderButton = new Button("Open containing folder");
-        openFolderButton.setOnAction(event -> openContainingFolder(result.getPath()));
+        openFolderButton.setOnAction(event -> {
+            openContainingFolder(result.getPath());
+
+            if (onCopyPath != null) {
+                onCopyPath.run();
+            }
+        });
 
         Button closeButton = new Button("Close");
         closeButton.setOnAction(event -> dialog.close());

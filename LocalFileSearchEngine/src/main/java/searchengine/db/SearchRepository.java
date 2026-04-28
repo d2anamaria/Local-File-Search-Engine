@@ -20,6 +20,10 @@ public class SearchRepository {
         this.connection = connection;
     }
 
+    public Connection getConnection() {
+        return connection;
+    }
+
     public List<SearchResult> searchByContent(SearchQuery query, IndexingRules rules) {
         List<SearchResult> results = new ArrayList<>();
         Set<String> enabledExtensions = rules.getEnabledTextExtensions();

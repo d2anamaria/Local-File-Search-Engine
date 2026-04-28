@@ -207,7 +207,9 @@ public class SearchController {
         resultsList.setOnMouseClicked(event -> {
             if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
                 SearchResult selected = resultsList.getSelectionModel().getSelectedItem();
+
                 if (selected != null) {
+                    searchService.recordResultClick(selected);
                     showResultDetails(selected);
                 }
             }
@@ -304,7 +306,12 @@ public class SearchController {
     }
 
     private void showResultDetails(SearchResult result) {
-        SearchResultDetailsDialog dialog = new SearchResultDetailsDialog(stage, searchField.getText());
+        SearchResultDetailsDialog dialog = new SearchResultDetailsDialog(
+                stage,
+                searchField.getText(),
+                () -> searchService.recordCopyPath(result)
+        );
+
         dialog.show(result);
     }
 
