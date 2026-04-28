@@ -81,9 +81,9 @@ public class SearchRepository {
                             rs.getString("path"),
                             rs.getString("preview"),
                             rs.getString("modified_at"),
-                            rs.getDouble("path_score")
+                            rs.getDouble("path_score"),
+                            rs.getDouble("user_relevance_score")
                     );
-
                     if (matchesRuntimeFileFilters(result, rules)) {
                         results.add(result);
                     }
@@ -159,7 +159,8 @@ public class SearchRepository {
                             rs.getString("path"),
                             rs.getString("preview"),
                             rs.getString("modified_at"),
-                            rs.getDouble("path_score")
+                            rs.getDouble("path_score"),
+                            rs.getDouble("user_relevance_score")
                     );
 
                     if (matchesRuntimeFileFilters(result, rules)) {

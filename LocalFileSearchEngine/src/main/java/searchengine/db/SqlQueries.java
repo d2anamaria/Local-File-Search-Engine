@@ -108,6 +108,16 @@ public final class SqlQueries {
         last_interacted_at = excluded.last_interacted_at
     """;
 
+    private static final String USER_RELEVANCE_SELECT = """
+    COALESCE(ri.click_count, 0) * 1.0
+    + COALESCE(ri.copy_path_count, 0) * 2.5
+    AS user_relevance_score
+""";
+
+    private static final String RESULT_INTERACTIONS_JOIN = """
+    LEFT JOIN result_interactions ri ON ri.path = f.path
+""";
+
     public static String searchContentAndOptionalPathWithRules(
             int extensionCount,
             boolean filterHidden,
@@ -117,16 +127,17 @@ public final class SqlQueries {
         String pathClause = pathClauses(pathCount);
 
         return """
-        SELECT f.file_name, f.path, f.preview, f.modified_at, f.path_score
+        SELECT f.file_name, f.path, f.preview, f.modified_at, f.path_score, %s
         FROM file_content_fts fts
         JOIN files f ON f.path = fts.path
+        %s
         WHERE file_content_fts MATCH ?
           %s
           %s
           AND f.size_bytes <= ?
           AND f.extension IN (%s)
           ORDER BY f.path_score DESC
-        """.formatted(pathClause, hiddenClause, placeholders(extensionCount));
+        """.formatted(USER_RELEVANCE_SELECT, RESULT_INTERACTIONS_JOIN, pathClause, hiddenClause, placeholders(extensionCount));
     }
 
     public static String searchContentAndOptionalPathUnderRootWithRules(
@@ -138,9 +149,10 @@ public final class SqlQueries {
         String pathClause = pathClauses(pathCount);
 
         return """
-        SELECT f.file_name, f.path, f.preview, f.modified_at, f.path_score
+        SELECT f.file_name, f.path, f.preview, f.modified_at, f.path_score, %s
         FROM file_content_fts fts
         JOIN files f ON f.path = fts.path
+        %s
         WHERE file_content_fts MATCH ?
           AND f.path LIKE ?
           %s
@@ -148,7 +160,7 @@ public final class SqlQueries {
           AND f.size_bytes <= ?
           AND f.extension IN (%s)
           ORDER BY f.path_score DESC
-        """.formatted(pathClause, hiddenClause, placeholders(extensionCount));
+        """.formatted( USER_RELEVANCE_SELECT, RESULT_INTERACTIONS_JOIN, pathClause, hiddenClause, placeholders(extensionCount));
     }
 
     public static String searchByPathOnlyWithRules(int extensionCount, boolean filterHidden, int pathCount) {
@@ -156,15 +168,16 @@ public final class SqlQueries {
         String pathClause = pathClauses(pathCount);
 
         return """
-       SELECT f.file_name, f.path, f.preview, f.modified_at, f.path_score
+       SELECT f.file_name, f.path, f.preview, f.modified_at, f.path_score, %s
         FROM files f
+        %s
         WHERE 1 = 1
           %s
           %s
           AND f.size_bytes <= ?
           AND f.extension IN (%s)
           ORDER BY f.path_score DESC
-        """.formatted(pathClause, hiddenClause, placeholders(extensionCount));
+        """.formatted(USER_RELEVANCE_SELECT, RESULT_INTERACTIONS_JOIN, pathClause, hiddenClause, placeholders(extensionCount));
     }
 
     public static String searchByPathOnlyUnderRootWithRules(int extensionCount, boolean filterHidden, int pathCount) {
@@ -172,15 +185,16 @@ public final class SqlQueries {
         String pathClause = pathClauses(pathCount);
 
         return """
-        SELECT f.file_name, f.path, f.preview, f.modified_at, f.path_score
+        SELECT f.file_name, f.path, f.preview, f.modified_at, f.path_score, %s
         FROM files f
+        %s
         WHERE f.path LIKE ?
           %s
           %s
           AND f.size_bytes <= ?
           AND f.extension IN (%s)
           ORDER BY f.path_score DESC
-        """.formatted(pathClause, hiddenClause, placeholders(extensionCount));
+        """.formatted(USER_RELEVANCE_SELECT, RESULT_INTERACTIONS_JOIN, pathClause, hiddenClause, placeholders(extensionCount));
     }
 
     private static String pathClauses(int count) {

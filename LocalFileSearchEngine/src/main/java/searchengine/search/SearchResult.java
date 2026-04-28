@@ -6,13 +6,15 @@ public class SearchResult {
     private final String preview;
     private final String modifiedAt;
     private final double pathScore;
+    private final double userRelevanceScore;
 
-    public SearchResult(String fileName, String path, String preview, String modifiedAt, double pathScore) {
+    public SearchResult(String fileName, String path, String preview, String modifiedAt, double pathScore,double userRelevanceScore) {
         this.fileName = fileName;
         this.path = path;
         this.preview = preview;
         this.modifiedAt = modifiedAt;
         this.pathScore = pathScore;
+        this.userRelevanceScore = userRelevanceScore;
     }
 
     public String getFileName() {
@@ -41,5 +43,9 @@ public class SearchResult {
 
     public double getPathScore() {
         return pathScore;
+    }
+
+    public double getUserRelevanceScore() {
+        return userRelevanceScore;
     }
 }
