@@ -26,6 +26,7 @@ import searchengine.ui.component.SearchResultCell;
 import searchengine.ui.component.SearchResultDetailsDialog;
 import searchengine.ranking.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -231,7 +232,14 @@ public class SearchController {
             return;
         }
 
-        List<String> suggestions = searchService.findSuggestions(text.trim());
+        String currentText = text.trim();
+
+        List<String> suggestions = new ArrayList<>(
+                searchService.findSuggestions(currentText)
+        );
+
+        suggestions.remove(currentText);
+        suggestions.add(0, currentText);
 
         if (suggestions.isEmpty() || !searchField.isFocused()) {
             return;
