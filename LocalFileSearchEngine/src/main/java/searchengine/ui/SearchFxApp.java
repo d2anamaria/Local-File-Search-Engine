@@ -28,6 +28,11 @@ public class SearchFxApp extends Application {
 
         new SchemaInitializer().initializeSchema(indexingConnection);
 
+        DatabaseMaintenanceService maintenance =
+                new DatabaseMaintenanceService(databaseManager);
+
+        maintenance.runStartupMaintenanceAsync();
+
         IndexingRules indexingRules = new IndexingRules();
 
         RecursiveFileCrawler crawler = new RecursiveFileCrawler(indexingRules);

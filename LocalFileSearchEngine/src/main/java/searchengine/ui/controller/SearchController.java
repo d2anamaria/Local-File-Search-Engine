@@ -46,7 +46,7 @@ public class SearchController {
 
     private final ComboBox<RankingStrategy> rankingComboBox = new ComboBox<>();
     private final Popup suggestionsPopup = new Popup();
-    private final PauseTransition historyDelay = new PauseTransition(Duration.seconds(1));
+    private final PauseTransition historyDelay = new PauseTransition(Duration.seconds(3));
     private boolean applyingSuggestion = false;
 
     private final Supplier<Boolean> indexingInProgressSupplier;

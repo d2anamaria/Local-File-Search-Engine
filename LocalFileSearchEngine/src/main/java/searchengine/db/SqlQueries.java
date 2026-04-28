@@ -68,7 +68,7 @@ public final class SqlQueries {
     VALUES (?, 1, ?)
     ON CONFLICT(query_text)
     DO UPDATE SET
-        count = count + 1,
+        count = count * 0.97 + 1,
         last_used = excluded.last_used
 """;
 
@@ -79,6 +79,11 @@ public final class SqlQueries {
     ORDER BY count DESC, last_used DESC
     LIMIT ?
 """;
+
+    public static final String DELETE_OLD_SEARCH_HISTORY = """
+    DELETE FROM search_history
+    WHERE julianday('now') - julianday(last_used) > ?
+    """;
 
     // USER INTERACTIONS
     public static final String CREATE_RESULT_INTERACTIONS_TABLE = """
@@ -95,7 +100,7 @@ public final class SqlQueries {
     VALUES (?, 1, 0, ?)
     ON CONFLICT(path)
     DO UPDATE SET
-        click_count = click_count + 1,
+        click_count = click_count * 0.95 + 1,
         last_interacted_at = excluded.last_interacted_at
     """;
 
@@ -108,10 +113,22 @@ public final class SqlQueries {
         last_interacted_at = excluded.last_interacted_at
     """;
 
+    public static final String DELETE_OLD_RESULT_INTERACTIONS = """
+    DELETE FROM result_interactions
+    WHERE julianday('now') - julianday(last_interacted_at) > ?
+    """;
+
+    public static final String DELETE_ORPHAN_RESULT_INTERACTIONS = """
+    DELETE FROM result_interactions
+    WHERE path NOT IN (
+        SELECT path FROM files
+    )
+    """;
+
     private static final String USER_RELEVANCE_SELECT = """
-    COALESCE(ri.click_count, 0) * 1.0
-    + COALESCE(ri.copy_path_count, 0) * 2.5
-    + COALESCE(ext.dynamic_extension_count, 0) * 0.1
+    LOG(1 + COALESCE(ri.click_count, 0)) * 1.0
+    + LOG(1 + COALESCE(ri.copy_path_count, 0)) * 2.5
+    + LOG(1 + COALESCE(ext.dynamic_extension_count, 0)) * 0.1
     + (1.0 / (1 + (julianday('now') - julianday(f.modified_at)))) * 0.5
     AS user_relevance_score
 """;
