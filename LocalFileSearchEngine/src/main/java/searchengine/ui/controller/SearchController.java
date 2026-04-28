@@ -92,11 +92,9 @@ public class SearchController {
         rankingComboBox.setPrefWidth(160);
         rankingComboBox.setMinWidth(160);
 
-        rankingComboBox.setItems(FXCollections.observableArrayList(
-                new PathScoreStrategy(),
-                new ModifiedDateStrategy(),
-                new AlphabeticalStrategy()
-        ));
+        rankingComboBox.setItems(
+                FXCollections.observableArrayList(RankingStrategyRegistry.getAvailableStrategies())
+        );
 
         rankingComboBox.setValue(rankingComboBox.getItems().get(0));
 
