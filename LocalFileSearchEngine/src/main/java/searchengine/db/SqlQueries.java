@@ -111,11 +111,23 @@ public final class SqlQueries {
     private static final String USER_RELEVANCE_SELECT = """
     COALESCE(ri.click_count, 0) * 1.0
     + COALESCE(ri.copy_path_count, 0) * 2.5
+    + COALESCE(ext.dynamic_extension_count, 0) * 0.1
+    + (1.0 / (1 + (julianday('now') - julianday(f.modified_at)))) * 0.5
     AS user_relevance_score
 """;
 
     private static final String RESULT_INTERACTIONS_JOIN = """
     LEFT JOIN result_interactions ri ON ri.path = f.path
+    LEFT JOIN (
+        SELECT
+            f2.extension,
+            SUM(ri2.click_count + ri2.copy_path_count) AS dynamic_extension_count
+        FROM result_interactions ri2
+        JOIN files f2 ON f2.path = ri2.path
+        WHERE f2.extension IS NOT NULL
+          AND f2.extension <> ''
+        GROUP BY f2.extension
+    ) ext ON ext.extension = f.extension
 """;
 
     public static String searchContentAndOptionalPathWithRules(

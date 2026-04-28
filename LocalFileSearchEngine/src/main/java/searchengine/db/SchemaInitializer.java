@@ -65,6 +65,11 @@ public class SchemaInitializer {
             stmt.execute(SqlQueries.CREATE_SEARCH_HISTORY_TABLE);
             stmt.execute(SqlQueries.CREATE_RESULT_INTERACTIONS_TABLE);
 
+            stmt.execute("""
+                CREATE INDEX IF NOT EXISTS idx_result_interactions_path
+                ON result_interactions(path);
+            """);
+
             System.out.println("Database schema initialized successfully.");
         }
     }
