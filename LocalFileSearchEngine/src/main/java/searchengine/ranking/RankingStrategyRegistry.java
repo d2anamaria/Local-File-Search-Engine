@@ -9,8 +9,8 @@ public final class RankingStrategyRegistry {
 
     public static List<RankingStrategy> getAvailableStrategies() {
         return List.of(
-                new PathScoreStrategy(),
                 new UserRelevanceStrategy(),
+                new PathScoreStrategy(),
                 new ModifiedDateStrategy(),
                 new AlphabeticalStrategy()
         );

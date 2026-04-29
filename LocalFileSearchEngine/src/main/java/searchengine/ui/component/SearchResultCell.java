@@ -22,15 +22,22 @@ public class SearchResultCell extends ListCell<SearchResult> {
         fileNameLabel.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #111111;");
 
         Label pathLabel = new Label(item.getPath());
-        pathLabel.setWrapText(true);
+        pathLabel.setWrapText(false);
+        pathLabel.setMaxWidth(760);
         pathLabel.setStyle("-fx-text-fill: #555555;");
 
-        Label previewLabel = new Label(item.getPreview());
+        Label previewLabel = new Label(item.getPreview() == null ? "" : item.getPreview());
         previewLabel.setWrapText(true);
+        previewLabel.setMaxWidth(760);
+        previewLabel.setMaxHeight(40); // about 2 lines
         previewLabel.setStyle("-fx-text-fill: #222222;");
 
-        VBox content = new VBox(6, fileNameLabel, pathLabel, previewLabel);
-        content.setPadding(new Insets(10));
+        VBox content = new VBox(5, fileNameLabel, pathLabel, previewLabel);
+        content.setPadding(new Insets(8));
+        content.setMaxHeight(110);
+
+        setText(null);
+        setGraphic(content);
         content.setStyle("""
             -fx-background-color: white;
             -fx-border-color: #dcdcdc;

@@ -125,6 +125,7 @@ public class SearchController {
     private void buildResults() {
         resultsList.setCellFactory(list -> new SearchResultCell());
         resultsList.setPlaceholder(new Label("No results yet."));
+        resultsList.setFixedCellSize(120);
     }
 
     private void buildSuggestionsPopup() {
