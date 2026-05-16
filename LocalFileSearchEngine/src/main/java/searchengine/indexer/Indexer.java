@@ -4,6 +4,7 @@ import searchengine.crawler.CrawlResult;
 import searchengine.crawler.CrawlStats;
 import searchengine.crawler.RecursiveFileCrawler;
 import searchengine.db.repository.FileIndexRepository;
+import searchengine.indexer.strategy.FileIndexingStrategy;
 import searchengine.extractor.TextExtractor;
 import searchengine.ranking.PathScore;
 
@@ -11,25 +12,27 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Optional;
 import java.util.function.BooleanSupplier;
 
 public class Indexer {
 
     private final RecursiveFileCrawler crawler;
-    private final TextExtractor extractor;
     private final FileIndexRepository repository;
+    private final List<FileIndexingStrategy> strategies;
     private static final int TRANSACTION_BATCH_SIZE = 100;
 
     public Indexer(
             RecursiveFileCrawler crawler,
-            TextExtractor extractor,
-            FileIndexRepository repository
+            FileIndexRepository repository,
+            List<FileIndexingStrategy> strategies
     ) {
         this.crawler = crawler;
-        this.extractor = extractor;
         this.repository = repository;
+        this.strategies = strategies;
     }
 
     public IndexingResult index(Path rootPath, IndexingProgressListener listener) {
@@ -91,7 +94,16 @@ public class Indexer {
                     if (indexedModifiedAt != null && indexedModifiedAt.equals(currentModifiedAt)) {
                         indexingStats.incrementFilesUnchanged();
                     } else {
-                        IndexedFileData fileData = buildIndexedFileData(rootPath, file, currentModifiedAt);
+                        Optional<FileIndexingStrategy> strategy = findStrategy(file);
+
+                        if (strategy.isEmpty()) {
+                            indexingStats.incrementErrors();
+                            continue;
+                        }
+
+                        IndexedFileData fileData = strategy.get()
+                                .buildIndexedFileData(rootPath, file, currentModifiedAt);
+
                         repository.save(fileData);
                         indexingStats.incrementFilesIndexed();
 
@@ -158,50 +170,11 @@ public class Indexer {
         );
     }
 
-    private IndexedFileData buildIndexedFileData(Path rootPath, Path file, String modifiedAt) throws Exception {
-        String absolutePath = file.toAbsolutePath().toString();
-        String fileName = file.getFileName().toString();
-        String content = extractor.extractText(file);
-        String preview = extractor.preview(content);
-
-        String extension = getExtension(fileName);
-        String mimeType = Files.probeContentType(file);
-        long sizeBytes = Files.size(file);
-        String indexedAt = Instant.now().toString();
-        boolean isHidden = Files.isHidden(file);
-        String fileCategory = "text";
-        String dominantColor = null;
-
-        PathScore pathScore = new PathScore(rootPath, file, extension, sizeBytes);
-
-        return new IndexedFileData(
-                absolutePath,
-                fileName,
-                extension,
-                mimeType,
-                sizeBytes,
-                null,
-                modifiedAt,
-                indexedAt,
-                null,
-                isHidden,
-                fileCategory,
-                dominantColor,
-                preview,
-                content,
-                pathScore.getPathDepth(),
-                pathScore.getDirectoryScore(),
-                pathScore.getExtensionScore(),
-                pathScore.getSizeScore(),
-                pathScore.getPathScore()
-        );
+    private Optional<FileIndexingStrategy> findStrategy(Path file) {
+        return strategies.stream()
+                .filter(strategy -> strategy.supports(file))
+                .findFirst();
     }
 
-    private String getExtension(String fileName) {
-        int lastDot = fileName.lastIndexOf('.');
-        if (lastDot == -1 || lastDot == fileName.length() - 1) {
-            return "";
-        }
-        return fileName.substring(lastDot + 1).toLowerCase();
-    }
+
 }

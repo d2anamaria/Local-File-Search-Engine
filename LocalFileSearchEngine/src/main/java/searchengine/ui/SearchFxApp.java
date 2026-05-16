@@ -11,13 +11,15 @@ import searchengine.db.infrastructure.SchemaInitializer;
 import searchengine.db.repository.FileIndexRepository;
 import searchengine.db.repository.SearchHistoryRepository;
 import searchengine.db.repository.SearchRepository;
-import searchengine.extractor.TextExtractor;
 import searchengine.indexer.Indexer;
+import searchengine.indexer.strategy.ImageIndexingStrategy;
+import searchengine.indexer.strategy.TextIndexingStrategy;
 import searchengine.search.SearchHistoryService;
 import searchengine.search.SearchService;
 import searchengine.ui.controller.MainController;
 
 import java.sql.Connection;
+import java.util.List;
 
 public class SearchFxApp extends Application {
 
@@ -41,10 +43,17 @@ public class SearchFxApp extends Application {
         IndexingRules indexingRules = new IndexingRules();
 
         RecursiveFileCrawler crawler = new RecursiveFileCrawler(indexingRules);
-        TextExtractor extractor = new TextExtractor(indexingRules);
+
 
         FileIndexRepository fileIndexRepository = new FileIndexRepository(indexingConnection);
-        Indexer indexer = new Indexer(crawler, extractor, fileIndexRepository);
+        Indexer indexer = new Indexer(
+                crawler,
+                fileIndexRepository,
+                List.of(
+                        new TextIndexingStrategy(indexingRules),
+                        new ImageIndexingStrategy(indexingRules)
+                )
+        );
 
         SearchRepository searchRepository = new SearchRepository(searchConnection);
         SearchService searchService = new SearchService(searchRepository, indexingRules);
