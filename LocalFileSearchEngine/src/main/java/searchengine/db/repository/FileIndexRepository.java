@@ -69,13 +69,14 @@ public class FileIndexRepository {
             ps.setString(8, fileData.getIndexedAt());
             ps.setString(9, fileData.getContentHash());
             ps.setInt(10, fileData.isHidden() ? 1 : 0);
-            ps.setInt(11, fileData.isTextFile() ? 1 : 0);
-            ps.setInt(12, fileData.getPathDepth());
-            ps.setDouble(13, fileData.getDirectoryScore());
-            ps.setDouble(14, fileData.getExtensionScore());
-            ps.setDouble(15, fileData.getSizeScore());
-            ps.setDouble(16, fileData.getPathScore());
-            ps.setString(17, fileData.getPreview());
+            ps.setString(11, fileData.getFileCategory());
+            ps.setString(12, fileData.getDominantColor());
+            ps.setInt(13, fileData.getPathDepth());
+            ps.setDouble(14, fileData.getDirectoryScore());
+            ps.setDouble(15, fileData.getExtensionScore());
+            ps.setDouble(16, fileData.getSizeScore());
+            ps.setDouble(17, fileData.getPathScore());
+            ps.setString(18, fileData.getPreview());
             ps.executeUpdate();
         }
     }

@@ -25,7 +25,8 @@ public class SchemaInitializer {
                     indexed_at TEXT NOT NULL,
                     content_hash TEXT,
                     is_hidden INTEGER NOT NULL DEFAULT 0,
-                    is_text_file INTEGER NOT NULL DEFAULT 0,
+                    file_category TEXT NOT NULL,
+                    dominant_color TEXT,
                     path_depth INTEGER NOT NULL DEFAULT 0,
                     directory_score REAL NOT NULL DEFAULT 0,
                     extension_score REAL NOT NULL DEFAULT 0,
@@ -49,6 +50,25 @@ public class SchemaInitializer {
                 CREATE INDEX IF NOT EXISTS idx_files_modified_at
                 ON files(modified_at);
             """);
+
+            addColumnIfMissing(
+                    stmt,
+                    "files",
+                    "file_category",
+                    "TEXT NOT NULL DEFAULT 'text'"
+            );
+            addColumnIfMissing(stmt, "files", "dominant_color", "TEXT");
+
+            stmt.execute("""
+                CREATE INDEX IF NOT EXISTS idx_files_file_category
+                ON files(file_category);
+            """);
+
+            stmt.execute("""
+                CREATE INDEX IF NOT EXISTS idx_files_dominant_color
+                ON files(dominant_color);
+            """);
+
 
             stmt.execute("""
                 CREATE VIRTUAL TABLE IF NOT EXISTS file_content_fts
@@ -80,5 +100,24 @@ public class SchemaInitializer {
 
             System.out.println("Database schema initialized successfully.");
         }
+    }
+
+    private void addColumnIfMissing(
+            Statement stmt,
+            String tableName,
+            String columnName,
+            String columnDefinition
+    ) throws SQLException {
+        try (var rs = stmt.executeQuery("PRAGMA table_info(" + tableName + ")")) {
+            while (rs.next()) {
+                if (columnName.equalsIgnoreCase(rs.getString("name"))) {
+                    return;
+                }
+            }
+        }
+
+        stmt.execute("""
+        ALTER TABLE %s ADD COLUMN %s %s;
+    """.formatted(tableName, columnName, columnDefinition));
     }
 }

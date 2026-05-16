@@ -11,7 +11,8 @@ public class IndexedFileData {
     private final String indexedAt;
     private final String contentHash;
     private final boolean hidden;
-    private final boolean textFile;
+    private final String fileCategory;
+    private final String dominantColor;
     private final String preview;
     private final String content;
     private final int pathDepth;
@@ -31,7 +32,8 @@ public class IndexedFileData {
             String indexedAt,
             String contentHash,
             boolean hidden,
-            boolean textFile,
+            String fileCategory,
+            String dominantColor,
             String preview,
             String content,
             int pathDepth,
@@ -50,7 +52,8 @@ public class IndexedFileData {
         this.indexedAt = indexedAt;
         this.contentHash = contentHash;
         this.hidden = hidden;
-        this.textFile = textFile;
+        this.fileCategory = fileCategory;
+        this.dominantColor = dominantColor;
         this.preview = preview;
         this.content = content;
         this.pathDepth = pathDepth;
@@ -101,8 +104,12 @@ public class IndexedFileData {
         return hidden;
     }
 
-    public boolean isTextFile() {
-        return textFile;
+    public String getFileCategory() {
+        return fileCategory;
+    }
+
+    public String getDominantColor() {
+        return dominantColor;
     }
 
     public String getPreview() {

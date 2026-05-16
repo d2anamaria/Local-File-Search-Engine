@@ -169,7 +169,8 @@ public class Indexer {
         long sizeBytes = Files.size(file);
         String indexedAt = Instant.now().toString();
         boolean isHidden = Files.isHidden(file);
-        boolean isTextFile = content != null && !content.isBlank();
+        String fileCategory = "text";
+        String dominantColor = null;
 
         PathScore pathScore = new PathScore(rootPath, file, extension, sizeBytes);
 
@@ -184,7 +185,8 @@ public class Indexer {
                 indexedAt,
                 null,
                 isHidden,
-                isTextFile,
+                fileCategory,
+                dominantColor,
                 preview,
                 content,
                 pathScore.getPathDepth(),

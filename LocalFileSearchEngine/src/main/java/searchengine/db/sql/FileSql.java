@@ -16,7 +16,8 @@ public final class FileSql {
         indexed_at,
         content_hash,
         is_hidden,
-        is_text_file,
+        file_category,
+        dominant_color,
         path_depth,
         directory_score,
         extension_score,
@@ -24,7 +25,7 @@ public final class FileSql {
         path_score,
         preview
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """;
 
     public static final String DELETE_FTS_BY_PATH = """
