@@ -20,6 +20,15 @@ public class IndexingRules {
             "log"
     );
 
+    public static final Set<String> DEFAULT_IMAGE_EXTENSIONS = Set.of(
+            "png",
+            "jpg",
+            "jpeg",
+            "gif",
+            "bmp",
+            "webp"
+    );
+
     public static final Set<String> DEFAULT_IGNORED_DIRECTORIES = Set.of(
             ".git",
             ".idea",
@@ -41,6 +50,7 @@ public class IndexingRules {
     public static final long DEFAULT_MAX_INDEXED_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
     private final Set<String> enabledTextExtensions;
+    private final Set<String> enabledImageExtensions;
     private final Set<String> ignoredDirectories;
     private final Set<String> ignoredFileNames;
 
@@ -49,6 +59,7 @@ public class IndexingRules {
 
     public IndexingRules() {
         this.enabledTextExtensions = new LinkedHashSet<>(DEFAULT_TEXT_EXTENSIONS);
+        this.enabledImageExtensions = new LinkedHashSet<>(DEFAULT_IMAGE_EXTENSIONS);
         this.ignoredDirectories = new LinkedHashSet<>(DEFAULT_IGNORED_DIRECTORIES);
         this.ignoredFileNames = new LinkedHashSet<>(DEFAULT_IGNORED_FILE_NAMES);
         this.maxIndexedFileSizeBytes = DEFAULT_MAX_INDEXED_FILE_SIZE_BYTES;
@@ -57,6 +68,10 @@ public class IndexingRules {
 
     public Set<String> getEnabledTextExtensions() {
         return Set.copyOf(enabledTextExtensions);
+    }
+
+    public Set<String> getEnabledImageExtensions() {
+        return Set.copyOf(enabledImageExtensions);
     }
 
     public void setExtensionEnabled(String extension, boolean enabled) {
@@ -168,6 +183,11 @@ public class IndexingRules {
         return extension != null && enabledTextExtensions.contains(extension);
     }
 
+    public boolean isSupportedImageFile(String fileName) {
+        String extension = getExtension(fileName);
+        return extension != null && enabledImageExtensions.contains(extension);
+    }
+
     public boolean isIgnoredFolder(String folderName) {
         String normalized = normalizeRuleName(folderName);
 
@@ -245,7 +265,10 @@ public class IndexingRules {
             return false;
         }
 
-        return isSupportedTextFile(file.getFileName().toString());
+        String fileName = file.getFileName().toString();
+
+        return isSupportedTextFile(fileName)
+                || isSupportedImageFile(fileName);
     }
 
     public String getExtension(String fileName) {
