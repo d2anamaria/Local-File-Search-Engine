@@ -40,3 +40,16 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+
+### Database ###
+*.db
+*.db-shm
+*.db-wal
+
+### Node ###
+package-lock.json
+node_modules/
+
+### Logs ###
+*.log
