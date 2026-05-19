@@ -7,14 +7,18 @@ public class SearchResult {
     private final String modifiedAt;
     private final double pathScore;
     private final double userRelevanceScore;
+    private final String fileCategory;
+    private final String dominantColor;
 
-    public SearchResult(String fileName, String path, String preview, String modifiedAt, double pathScore,double userRelevanceScore) {
+    public SearchResult(String fileName, String path, String preview, String modifiedAt, double pathScore,double userRelevanceScore, String fileCategory, String dominantColor) {
         this.fileName = fileName;
         this.path = path;
         this.preview = preview;
         this.modifiedAt = modifiedAt;
         this.pathScore = pathScore;
         this.userRelevanceScore = userRelevanceScore;
+        this.fileCategory = fileCategory;
+        this.dominantColor = dominantColor;
     }
 
     public String getFileName() {
@@ -47,5 +51,13 @@ public class SearchResult {
 
     public double getUserRelevanceScore() {
         return userRelevanceScore;
+    }
+
+    public String getFileCategory() {
+        return fileCategory;
+    }
+
+    public String getDominantColor() {
+        return dominantColor;
     }
 }

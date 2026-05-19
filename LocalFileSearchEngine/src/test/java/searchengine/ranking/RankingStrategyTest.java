@@ -22,7 +22,9 @@ class RankingStrategyTest {
                 "preview",
                 modifiedAt,
                 pathScore,
-                userScore
+                userScore,
+                "text",
+                null
         );
     }
 

@@ -11,6 +11,8 @@ public final class SearchSql {
                f.preview,
                f.modified_at,
                f.path_score,
+               f.file_category,
+               f.dominant_color,
                %s
         """.formatted(userRelevanceSelect());
     }

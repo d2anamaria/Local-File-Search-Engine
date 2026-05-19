@@ -13,7 +13,8 @@ public final class QueryFilterRegistry {
                 new PathQueryFilter(),
                 new HiddenFileQueryFilter(),
                 new SizeQueryFilter(),
-                new ExtensionQueryFilter()
+                new ExtensionQueryFilter(),
+                new ColorQueryFilter()
         );
     }
 }

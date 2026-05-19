@@ -38,9 +38,10 @@ class SearchServiceInteractionTest {
                 "preview",
                 "2026-01-01T10:00:00",
                 1.0,
-                0.0
+                0.0,
+                "text",
+                null
         );
-
         searchService.recordResultClick(result, "hello");
 
         try (Statement stmt = connection.createStatement();
@@ -67,7 +68,9 @@ class SearchServiceInteractionTest {
                 "preview",
                 "2026-01-01T10:00:00",
                 1.0,
-                0.0
+                0.0,
+                "text",
+                null
         );
 
         searchService.recordCopyPath(result, "hello");
@@ -95,7 +98,9 @@ class SearchServiceInteractionTest {
                 "preview",
                 "2026-01-01T10:00:00",
                 1.0,
-                0.0
+                0.0,
+                "text",
+                null
         );
 
         searchService.recordResultClick(result, "hello world");

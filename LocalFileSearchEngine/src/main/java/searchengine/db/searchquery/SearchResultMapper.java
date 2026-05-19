@@ -14,7 +14,9 @@ public class SearchResultMapper {
                 rs.getString("preview"),
                 rs.getString("modified_at"),
                 rs.getDouble("path_score"),
-                rs.getDouble("user_relevance_score")
+                rs.getDouble("user_relevance_score"),
+                rs.getString("file_category"),
+                rs.getString("dominant_color")
         );
     }
 }
