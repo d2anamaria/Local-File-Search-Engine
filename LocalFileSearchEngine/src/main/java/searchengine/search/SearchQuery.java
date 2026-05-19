@@ -5,10 +5,12 @@ import java.util.List;
 public class SearchQuery {
     private final List<String> content;
     private final List<String>  path;
+    private final List<String> color;
 
-    public SearchQuery(List<String>  content, List<String>  path) {
+    public SearchQuery(List<String>  content, List<String>  path, List<String> color) {
         this.content = content;
         this.path = path;
+        this.color = color;
     }
 
     public List<String>  getContent() { return content; }
@@ -22,8 +24,14 @@ public class SearchQuery {
         return path != null && !path.isEmpty();
     }
 
+    public List<String> getColor() { return color; }
+
+    public boolean hasColor() {
+        return color != null && !color.isEmpty();
+    }
+
     public boolean isEmpty() {
-        return !hasContent() && !hasPath();
+        return !hasContent() && !hasPath() && !hasColor();
     }
 
 }

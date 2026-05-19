@@ -8,15 +8,16 @@ import java.util.regex.Pattern;
 public class QueryParser {
 
     private static final Pattern QUALIFIER =
-            Pattern.compile("(content|path):", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("(content|path|color):", Pattern.CASE_INSENSITIVE);
 
     public SearchQuery parse(String rawQuery) {
         if (rawQuery == null || rawQuery.isBlank()) {
-            return new SearchQuery(List.of(), List.of());
+            return new SearchQuery(List.of(), List.of(), List.of());
         }
 
         List<String> contentParts = new ArrayList<>();
         List<String> pathParts = new ArrayList<>();
+        List<String> colorParts = new ArrayList<>();
 
         Matcher matcher = QUALIFIER.matcher(rawQuery);
 
@@ -37,6 +38,10 @@ public class QueryParser {
             } else if (currentQualifier.equals("path")) {
                 if (!chunk.isBlank()) {
                     pathParts.add(chunk);
+                }
+            } else if (currentQualifier.equals("color")) {
+                if (!chunk.isBlank()) {
+                    colorParts.add(chunk);
                 }
             }
 
@@ -62,7 +67,8 @@ public class QueryParser {
 
         return new SearchQuery(
                 normalizeParts(contentParts),
-                normalizeParts(pathParts)
+                normalizeParts(pathParts),
+                normalizeParts(colorParts)
         );
     }
 
