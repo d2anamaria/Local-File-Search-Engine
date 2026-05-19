@@ -46,7 +46,7 @@ public class SearchRepository {
     ) {
         List<SearchResult> results = new ArrayList<>();
 
-        if (rules.getEnabledTextExtensions() == null || rules.getEnabledTextExtensions().isEmpty()) {
+        if (!rules.hasAnyEnabledExtensions()) {
             return results;
         }
 

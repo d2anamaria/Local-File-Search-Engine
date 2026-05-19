@@ -10,15 +10,13 @@ public class ExtensionQueryFilter implements QueryFilter {
 
     @Override
     public boolean applies(SearchQuery query, String rootPath, IndexingRules rules) {
-        return !query.hasColor()
-                && rules.getEnabledTextExtensions() != null
-                && !rules.getEnabledTextExtensions().isEmpty();
+        return rules.hasAnyEnabledExtensions();
     }
 
     @Override
     public void appendSql(StringBuilder sql, SearchQuery query, String rootPath, IndexingRules rules) {
         sql.append("AND f.extension IN (");
-        sql.append(placeholders(rules.getEnabledTextExtensions().size()));
+        sql.append(placeholders(rules.getAllEnabledExtensions().size()));
         sql.append(")\n");
     }
 
@@ -30,7 +28,7 @@ public class ExtensionQueryFilter implements QueryFilter {
             String rootPath,
             IndexingRules rules
     ) throws SQLException {
-        for (String extension : rules.getEnabledTextExtensions()) {
+        for (String extension : rules.getAllEnabledExtensions()) {
             ps.setString(index++, extension);
         }
 

@@ -4,6 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.HashSet;
 
 public class IndexingRules {
 
@@ -72,6 +73,18 @@ public class IndexingRules {
 
     public Set<String> getEnabledImageExtensions() {
         return Set.copyOf(enabledImageExtensions);
+    }
+
+    public Set<String> getAllEnabledExtensions() {
+        Set<String> extensions = new HashSet<>();
+        extensions.addAll(enabledTextExtensions);
+        extensions.addAll(enabledImageExtensions);
+        return Set.copyOf(extensions);
+    }
+
+    public boolean hasAnyEnabledExtensions() {
+        return !enabledTextExtensions.isEmpty()
+                || !enabledImageExtensions.isEmpty();
     }
 
     public void setExtensionEnabled(String extension, boolean enabled) {
