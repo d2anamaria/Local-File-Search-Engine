@@ -8,6 +8,8 @@ import searchengine.config.IndexingRules;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 public class IndexingConfigPanel {
 
@@ -60,26 +62,63 @@ public class IndexingConfigPanel {
         );
     }
 
-    private TitledPane buildExtensionsPane() {
-        VBox extensionsBox = new VBox(8);
 
-        List<String> extensions = new ArrayList<>(IndexingRules.DEFAULT_TEXT_EXTENSIONS);
+    private TitledPane buildTextExtensionsSection() {
+        return buildExtensionSection(
+                "Text extensions",
+                "Enable all text file types",
+                new ArrayList<>(IndexingRules.DEFAULT_TEXT_EXTENSIONS),
+                indexingRules::isExtensionEnabled,
+                indexingRules::setExtensionEnabled
+        );
+    }
+
+    private TitledPane buildImageExtensionsSection() {
+        return buildExtensionSection(
+                "Image extensions",
+                "Enable all image file types",
+                new ArrayList<>(IndexingRules.DEFAULT_IMAGE_EXTENSIONS),
+                indexingRules::isImageExtensionEnabled,
+                indexingRules::setImageExtensionEnabled
+        );
+    }
+
+    private TitledPane buildExtensionsPane() {
+        VBox content = new VBox(8);
+
+        content.getChildren().addAll(
+                buildTextExtensionsSection(),
+                buildImageExtensionsSection()
+        );
+
+        TitledPane pane = new TitledPane("Extensions", content);
+        pane.setExpanded(false);
+        pane.setCollapsible(true);
+        pane.setMaxWidth(Double.MAX_VALUE);
+        return pane;
+    }
+
+    private TitledPane buildExtensionSection(
+            String title,
+            String enableAllText,
+            List<String> extensions,
+            Predicate<String> isEnabled,
+            BiConsumer<String, Boolean> setEnabled
+    ) {
+        VBox box = new VBox(8);
+
         extensions.sort(Comparator.naturalOrder());
 
-        CheckBox enableAllCheckBox = new CheckBox("Enable all text file types");
-        enableAllCheckBox.setSelected(
-                indexingRules.getEnabledTextExtensions().containsAll(extensions)
-                        && indexingRules.getEnabledTextExtensions().size() == extensions.size()
-        );
+        CheckBox enableAllCheckBox = new CheckBox(enableAllText);
 
         List<CheckBox> extensionCheckBoxes = new ArrayList<>();
 
         for (String extension : extensions) {
             CheckBox checkBox = new CheckBox("." + extension);
-            checkBox.setSelected(indexingRules.isExtensionEnabled(extension));
+            checkBox.setSelected(isEnabled.test(extension));
 
             checkBox.selectedProperty().addListener((obs, oldValue, newValue) -> {
-                indexingRules.setExtensionEnabled(extension, newValue);
+                setEnabled.accept(extension, newValue);
                 updateEnableAllCheckBox(enableAllCheckBox, extensionCheckBoxes, extensions.size());
                 notifyConfigChanged();
             });
@@ -87,11 +126,13 @@ public class IndexingConfigPanel {
             extensionCheckBoxes.add(checkBox);
         }
 
+        updateEnableAllCheckBox(enableAllCheckBox, extensionCheckBoxes, extensions.size());
+
         enableAllCheckBox.setOnAction(event -> {
             boolean selected = enableAllCheckBox.isSelected();
 
             for (String extension : extensions) {
-                indexingRules.setExtensionEnabled(extension, selected);
+                setEnabled.accept(extension, selected);
             }
 
             for (CheckBox checkBox : extensionCheckBoxes) {
@@ -101,11 +142,11 @@ public class IndexingConfigPanel {
             notifyConfigChanged();
         });
 
-        extensionsBox.getChildren().add(enableAllCheckBox);
-        extensionsBox.getChildren().add(new Separator());
-        extensionsBox.getChildren().addAll(extensionCheckBoxes);
+        box.getChildren().add(enableAllCheckBox);
+        box.getChildren().add(new Separator());
+        box.getChildren().addAll(extensionCheckBoxes);
 
-        TitledPane pane = new TitledPane("Text files", extensionsBox);
+        TitledPane pane = new TitledPane(title, box);
         pane.setExpanded(false);
         pane.setCollapsible(true);
         pane.setMaxWidth(Double.MAX_VALUE);

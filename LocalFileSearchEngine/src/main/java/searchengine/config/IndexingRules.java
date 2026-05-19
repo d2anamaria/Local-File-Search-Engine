@@ -111,6 +111,30 @@ public class IndexingRules {
         return enabledTextExtensions.contains(normalized);
     }
 
+    public void setImageExtensionEnabled(String extension, boolean enabled) {
+        String normalized = normalizeRuleName(extension);
+
+        if (normalized == null) {
+            return;
+        }
+
+        if (enabled) {
+            enabledImageExtensions.add(normalized);
+        } else {
+            enabledImageExtensions.remove(normalized);
+        }
+    }
+
+    public boolean isImageExtensionEnabled(String extension) {
+        String normalized = normalizeRuleName(extension);
+
+        if (normalized == null) {
+            return false;
+        }
+
+        return enabledImageExtensions.contains(normalized);
+    }
+
     public Set<String> getIgnoredDirectories() {
         return Set.copyOf(ignoredDirectories);
     }
