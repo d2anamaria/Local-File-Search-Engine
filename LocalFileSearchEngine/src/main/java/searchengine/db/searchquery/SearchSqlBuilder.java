@@ -1,67 +1,77 @@
 package searchengine.db.searchquery;
 
 import searchengine.config.IndexingRules;
+import searchengine.db.searchquery.filter.QueryFilter;
+import searchengine.db.searchquery.filter.QueryFilterRegistry;
 import searchengine.db.sql.SearchSql;
 import searchengine.search.SearchQuery;
 import searchengine.ui.util.QueryTermExtractor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class SearchSqlBuilder {
 
-    private final QueryTermExtractor queryTermExtractor = new QueryTermExtractor();
+    private final QueryTermExtractor queryTermExtractor =
+            new QueryTermExtractor();
 
-    public SearchSqlContext build(SearchQuery query, String rootPath, IndexingRules rules) {
-        List<String> terms = queryTermExtractor.extractTerms(query);
+    public SearchSqlContext build(
+            SearchQuery query,
+            String rootPath,
+            IndexingRules rules
+    ) {
+        List<String> terms =
+                queryTermExtractor.extractTerms(query); // used for term_file_interactions, not search
 
-        boolean hasContent = query.hasContent();
-        boolean underRoot = rootPath != null && !rootPath.isBlank();
+        List<QueryFilter> activeFilters =
+                findActiveFilters(query, rootPath, rules);
 
-        int extensionCount = rules.getEnabledTextExtensions().size();
-        boolean filterHidden = !rules.isIncludeHiddenFiles();
-        int pathPartCount = query.getPath().size();
-        int termCount = terms.size();
+        StringBuilder sql = new StringBuilder();
 
-        String sql;
+        sql.append(SearchSql.baseSelect());
 
-        if (underRoot) {
-            sql = hasContent
-                    ? SearchSql.searchContentAndOptionalPathUnderRootWithRules(
-                    extensionCount,
-                    filterHidden,
-                    pathPartCount,
-                    termCount
-            )
-                    : SearchSql.searchByPathOnlyUnderRootWithRules(
-                    extensionCount,
-                    filterHidden,
-                    pathPartCount,
-                    termCount
-            );
+        if (query.hasContent()) {
+            sql.append(SearchSql.contentFromClause());
         } else {
-            sql = hasContent
-                    ? SearchSql.searchContentAndOptionalPathWithRules(
-                    extensionCount,
-                    filterHidden,
-                    pathPartCount,
-                    termCount
-            )
-                    : SearchSql.searchByPathOnlyWithRules(
-                    extensionCount,
-                    filterHidden,
-                    pathPartCount,
-                    termCount
-            );
+            sql.append(SearchSql.filesFromClause());
         }
 
-        return new SearchSqlContext(sql, terms, hasContent, underRoot);
+        sql.append(SearchSql.resultInteractionsJoin(terms.size()));
+        sql.append(SearchSql.whereStart());
+
+        for (QueryFilter filter : activeFilters) {
+            filter.appendSql(sql, query, rootPath, rules);
+        }
+
+        sql.append(SearchSql.defaultOrderBy());
+
+        return new SearchSqlContext(
+                sql.toString(),
+                terms,
+                activeFilters
+        );
+    }
+
+    private List<QueryFilter> findActiveFilters(
+            SearchQuery query,
+            String rootPath,
+            IndexingRules rules
+    ) {
+        List<QueryFilter> activeFilters = new ArrayList<>();
+
+        for (QueryFilter filter : QueryFilterRegistry.filters()) {
+            if (filter.applies(query, rootPath, rules)) {
+                activeFilters.add(filter);
+            }
+        }
+
+        return activeFilters;
     }
 
     public record SearchSqlContext(
             String sql,
             List<String> terms,
-            boolean hasContent,
-            boolean underRoot
+            List<QueryFilter> activeFilters
     ) {
     }
 }
