@@ -3,7 +3,31 @@
 All notable changes to this project will be documented in this file.
 
 # Iteration 3 — Multimodal Indexing & Media Support
+## [3.1.0] - 2026-05-19
 
+### Added
+- Added modular `QueryFilter` architecture for SQL query generation ([ea59887](https://github.com/d2anamaria/Local-File-Search-Engine/commit/ea59887))
+- Added `QueryFilterRegistry` for centralized filter registration ([ea59887](https://github.com/d2anamaria/Local-File-Search-Engine/commit/ea59887))
+- Added isolated query filters for:
+  - content filtering
+  - path filtering
+  - root path filtering
+  - hidden file filtering
+  - extension filtering
+  - file size filtering ([ea59887](https://github.com/d2anamaria/Local-File-Search-Engine/commit/ea59887))
+- Added integration tests for content and path-qualified search behavior ([ea59887](https://github.com/d2anamaria/Local-File-Search-Engine/commit/ea59887))
+- Added `IndexingStrategyRegistry` for centralized indexing strategy configuration ([ff9b7dd](https://github.com/d2anamaria/Local-File-Search-Engine/commit/ff9b7dd))
+
+### Changed
+- Refactored `SearchSqlBuilder` from combinational query branching to dynamic filter orchestration ([ea59887](https://github.com/d2anamaria/Local-File-Search-Engine/commit/ea59887))
+- Refactored `SearchParameterBinder` to delegate parameter binding to query filters ([ea59887](https://github.com/d2anamaria/Local-File-Search-Engine/commit/ea59887))
+- Converted `SearchSql` into a reusable SQL fragment provider ([ea59887](https://github.com/d2anamaria/Local-File-Search-Engine/commit/ea59887))
+- Simplified SQL generation flow by removing duplicated query combinations ([ea59887](https://github.com/d2anamaria/Local-File-Search-Engine/commit/ea59887))
+
+### Infrastructure
+- Improved extensibility for future query qualifiers and multimodal search support.
+- Reduced coupling between query parsing, SQL generation, and parameter binding.
+- Improved Open/Closed Principle compliance for search query extensions.
 
 ## [3.0.0] - 2026-05-16
 
