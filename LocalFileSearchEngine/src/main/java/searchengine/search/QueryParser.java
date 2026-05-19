@@ -63,6 +63,10 @@ public class QueryParser {
             if (!lastChunk.isBlank()) {
                 pathParts.add(lastChunk);
             }
+        }else if (currentQualifier.equals("color")) {
+            if (!lastChunk.isBlank()) {
+                colorParts.add(lastChunk);
+            }
         }
 
         return new SearchQuery(
