@@ -12,8 +12,7 @@ import searchengine.db.repository.FileIndexRepository;
 import searchengine.db.repository.SearchHistoryRepository;
 import searchengine.db.repository.SearchRepository;
 import searchengine.indexer.Indexer;
-import searchengine.indexer.strategy.ImageIndexingStrategy;
-import searchengine.indexer.strategy.TextIndexingStrategy;
+import searchengine.indexer.strategy.IndexingStrategyRegistry;
 import searchengine.search.SearchHistoryService;
 import searchengine.search.SearchService;
 import searchengine.ui.controller.MainController;
@@ -49,10 +48,7 @@ public class SearchFxApp extends Application {
         Indexer indexer = new Indexer(
                 crawler,
                 fileIndexRepository,
-                List.of(
-                        new TextIndexingStrategy(indexingRules),
-                        new ImageIndexingStrategy(indexingRules)
-                )
+                IndexingStrategyRegistry.getAvailableStrategies(indexingRules)
         );
 
         SearchRepository searchRepository = new SearchRepository(searchConnection);
