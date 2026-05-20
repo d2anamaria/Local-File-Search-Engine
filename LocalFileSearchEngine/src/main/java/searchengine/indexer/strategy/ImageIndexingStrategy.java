@@ -28,13 +28,17 @@ public class ImageIndexingStrategy extends AbstractFileIndexingStrategy {
     ) throws Exception {
         String dominantColor = colorExtractor.extractDominantColor(file);
 
+        String preview = dominantColor == null
+                ? "image"
+                : "dominant color: " + dominantColor;
+
         return buildFileData(
                 rootPath,
                 file,
                 modifiedAt,
                 "image",
                 dominantColor,
-                null,
+                preview,
                 null
         );
     }

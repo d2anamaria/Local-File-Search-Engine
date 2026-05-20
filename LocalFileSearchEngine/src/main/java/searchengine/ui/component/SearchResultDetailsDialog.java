@@ -13,6 +13,9 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextFlow;
+import javafx.scene.Node;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import searchengine.search.SearchResult;
@@ -61,18 +64,13 @@ public class SearchResultDetailsDialog {
         previewArea.setEditable(false);
         previewArea.setPrefRowCount(4);
 
-        Label contentTitleLabel = new Label("Full text");
+        Label contentTitleLabel = new Label(
+                "image".equals(result.getFileCategory()) ? "Image preview" : "Full text"
+        );
         contentTitleLabel.setStyle("-fx-font-weight: bold;");
 
-        String fullText = loadFullText(result.getPath());
-
-        TextFlow contentFlow = TextHighlighter.buildHighlightedTextFlow(fullText, query);
-        contentFlow.setPrefWidth(740);
-
-        ScrollPane contentScrollPane = new ScrollPane(contentFlow);
-        contentScrollPane.setFitToWidth(true);
-        contentScrollPane.setPannable(true);
-        VBox.setVgrow(contentScrollPane, Priority.ALWAYS);
+        Node contentNode = buildContentNode(result);
+        VBox.setVgrow(contentNode, Priority.ALWAYS);
 
         Button copyPathButton = new Button("Copy path");
         copyPathButton.setOnAction(event -> {
@@ -106,11 +104,11 @@ public class SearchResultDetailsDialog {
                 previewTitleLabel,
                 previewArea,
                 contentTitleLabel,
-                contentScrollPane,
+                contentNode,
                 buttonBar
         );
         layout.setPadding(new Insets(16));
-        VBox.setVgrow(contentScrollPane, Priority.ALWAYS);
+        VBox.setVgrow(contentNode, Priority.ALWAYS);
 
         Scene scene = new Scene(layout, 800, 600);
         dialog.setScene(scene);
@@ -129,6 +127,40 @@ public class SearchResultDetailsDialog {
         } catch (Exception e) {
             return "Could not load full text: " + e.getMessage();
         }
+    }
+
+    private Node buildContentNode(SearchResult result) {
+        if ("image".equals(result.getFileCategory())) {
+            Image image = new Image(
+                    Path.of(result.getPath())
+                            .toUri()
+                            .toString()
+            );
+
+            ImageView imageView = new ImageView(image);
+            imageView.setPreserveRatio(true);
+            imageView.setFitWidth(700);
+            imageView.setFitHeight(300);
+
+            ScrollPane scrollPane = new ScrollPane(imageView);
+            scrollPane.setFitToWidth(true);
+            scrollPane.setFitToHeight(true);
+            scrollPane.setPannable(true);
+
+            return scrollPane;
+        }
+
+        String fullText = loadFullText(result.getPath());
+
+        TextFlow contentFlow =
+                TextHighlighter.buildHighlightedTextFlow(fullText, query);
+        contentFlow.setPrefWidth(740);
+
+        ScrollPane scrollPane = new ScrollPane(contentFlow);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setPannable(true);
+
+        return scrollPane;
     }
 
     private void copyPath(String path) {

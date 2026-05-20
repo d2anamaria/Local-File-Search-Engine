@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 
 # Iteration 3 — Multimodal Indexing & Media Support
+## [3.2.0] - 2026-05-19
+
+## [3.2.0] - 2026-05-19
+
+### Added
+- Added color-based image querying using `color:<value>` filters ([782beb2](https://github.com/d2anamaria/Local-File-Search-Engine/commit/782beb2)).
+- Added runtime configuration for supported image extensions ([0fbe0a2](https://github.com/d2anamaria/Local-File-Search-Engine/commit/0fbe0a2)).
+- Added image preview and full-image rendering in the result details dialog ([b9eb08a](https://github.com/d2anamaria/Local-File-Search-Engine/commit/b9eb08a)).
+
+### Changed
+- Removed text-only assumptions from the search repository flow ([99d8973](https://github.com/d2anamaria/Local-File-Search-Engine/commit/99d8973)).
+- Extended query filtering with image-aware and color-aware filtering ([782beb2](https://github.com/d2anamaria/Local-File-Search-Engine/commit/782beb2)).
+- Updated search result mapping and UI rendering for mixed text/image results ([782beb2](https://github.com/d2anamaria/Local-File-Search-Engine/commit/782beb2), [b9eb08a](https://github.com/d2anamaria/Local-File-Search-Engine/commit/b9eb08a)).
+
+### Fixed
+- Fixed missing preview generation for indexed image files ([b9eb08a](https://github.com/d2anamaria/Local-File-Search-Engine/commit/b9eb08a)).
+- Fixed standalone `color:` filters not being applied correctly during search ([1d7859b](https://github.com/d2anamaria/Local-File-Search-Engine/commit/1d7859b)).
+
 ## [3.1.0] - 2026-05-19
 
 ### Added
